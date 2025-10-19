@@ -1,0 +1,2382 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integrated CRM System (Local Offline Version)</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons library -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom Font (Inter for English & Cairo for Arabic) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Cairo', sans-serif;
+        }
+        .modal-backdrop, .modal-content {
+            transition: all 0.3s ease;
+        }
+        .details-modal-content p {
+            margin-bottom: 0.75rem;
+        }
+        .details-modal-content strong {
+            display: inline-block;
+            width: 120px;
+            color: #4a5568;
+        }
+        .nav-btn {
+            @apply px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all duration-150 flex items-center gap-2 cursor-pointer;
+        }
+        .nav-btn-active {
+            @apply bg-blue-600 border-b-2 border-blue-800 shadow-inner;
+            transform: translateY(2px);
+        }
+        .nav-btn-inactive {
+            @apply bg-blue-500 border-b-4 border-blue-700 shadow-md;
+        }
+        .nav-btn-inactive:hover {
+            @apply bg-blue-600;
+        }
+        .nav-btn:active {
+            transform: translateY(2px);
+            @apply border-b-2 shadow-inner;
+        }
+        .sortable { cursor: pointer; position: relative; }
+        .sortable::after, .sortable::before {
+            content: ''; position: absolute; left: -12px; border: 4px solid transparent; opacity: 0.3;
+        }
+        .sortable::before { top: 50%; margin-top: -9px; border-bottom-color: #6b7280; }
+        .sortable::after { top: 50%; margin-top: 1px; border-top-color: #6b7280; }
+        .sortable[data-sort-dir="asc"]::before, .sortable[data-sort-dir="desc"]::after { opacity: 1; }
+        .kanban-column { min-height: 400px; }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printableReportView, #printableReportView * {
+                visibility: visible;
+            }
+            #printableReportView {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            #reportContent {
+                 box-shadow: none !important;
+                 border: none !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- Main Application Container -->
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 no-print">
+        <header class="mb-6 text-center">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-700">Integrated CRM & Operations System</h1>
+            <p class="text-gray-500 mt-2">Your complete tool for tracking clients, managing deals, and overseeing orders</p>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="mb-8 flex justify-center">
+            <nav class="flex flex-wrap justify-center gap-3" aria-label="Tabs">
+                <button id="dashboardViewLink" class="nav-btn nav-btn-active">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button id="clientsViewLink" class="nav-btn nav-btn-inactive">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                    <span>Clients</span>
+                </button>
+                 <button id="salesViewLink" class="nav-btn nav-btn-inactive">
+                    <i data-lucide="dollar-sign" class="w-5 h-5"></i>
+                    <span>Sales Pipeline</span>
+                </button>
+                <button id="wonDealsViewLink" class="nav-btn nav-btn-inactive">
+                    <i data-lucide="package" class="w-5 h-5"></i>
+                    <span>Won Deals</span>
+                </button>
+                 <button id="shipmentsViewLink" class="nav-btn nav-btn-inactive">
+                    <i data-lucide="ship" class="w-5 h-5"></i>
+                    <span>Shipments</span>
+                </button>
+                <button id="plannerViewLink" class="nav-btn nav-btn-inactive">
+                    <i data-lucide="calendar-check" class="w-5 h-5"></i>
+                    <span>Tasks</span>
+                </button>
+                <button id="reportViewLink" class="nav-btn nav-btn-inactive">
+                    <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                    <span>Reports</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- Dashboard View -->
+        <div id="dashboardView">
+             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Column 1: KPIs and Actionable List -->
+                <div class="lg:col-span-1 space-y-6">
+                    <!-- KPIs -->
+                    <div class="bg-white p-5 rounded-lg shadow-md">
+                        <h3 class="font-bold text-lg mb-4">Key Metrics</h3>
+                        <div class="space-y-4 text-sm">
+                             <div class="flex justify-between items-center">
+                                <span class="text-gray-500 font-medium">Total Outstanding Invoices</span>
+                                <span id="totalOutstandingValue" class="font-bold text-red-600"></span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-500 font-medium">Total Won Value</span>
+                                <span id="totalWonValue" class="font-bold text-gray-800"></span>
+                            </div>
+                             <div class="flex justify-between items-center">
+                                <span class="text-gray-500 font-medium">Average Deal Value</span>
+                                <span id="averageDealValue" class="font-bold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-500 font-medium">Win Rate</span>
+                                <span id="winRate" class="font-bold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-500 font-medium">Total Clients</span>
+                                <span id="totalClients" class="font-bold text-gray-800"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clients Needing Attention -->
+                    <div class="bg-white p-5 rounded-lg shadow-md">
+                        <h3 class="font-bold text-lg mb-4 flex items-center gap-2"><i data-lucide="user-minus" class="w-5 h-5 text-red-500"></i>Clients Needing Attention</h3>
+                        <p class="text-sm text-gray-500 mb-4">Not contacted in over 30 days.</p>
+                        <ul id="coldClientsList" class="space-y-2 max-h-80 overflow-y-auto"></ul>
+                    </div>
+                </div>
+
+                <!-- Column 2: Sales Pipeline Chart -->
+                <div class="lg:col-span-1 bg-white p-5 rounded-lg shadow-md">
+                      <h3 class="font-bold text-lg mb-4">Sales Pipeline by Stage</h3>
+                      <div class="h-64"><canvas id="salesPipelineChart"></canvas></div>
+                </div>
+                
+                <!-- Column 3: Client Types and Lost Deals -->
+                <div class="lg:col-span-1 space-y-6">
+                    <div class="bg-white p-5 rounded-lg shadow-md">
+                        <h3 class="font-bold text-lg mb-4">Clients by Type</h3>
+                        <div class="h-64"><canvas id="clientsByTypeChart"></canvas></div>
+                    </div>
+                    
+                    <div class="bg-white p-5 rounded-lg shadow-md">
+                        <h3 class="font-bold text-lg mb-4 flex items-center gap-2"><i data-lucide="clock" class="w-5 h-5 text-yellow-500"></i>Upcoming Deal Deadlines</h3>
+                        <ul id="pendingDealsDashboardList" class="space-y-3 max-h-48 overflow-y-auto"></ul>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-lg shadow-md">
+                        <h3 class="font-bold text-lg mb-4 flex items-center gap-2"><i data-lucide="folder-x" class="w-5 h-5 text-gray-500"></i>Recent Lost Deals</h3>
+                        <ul id="lostDealsDashboardList" class="space-y-3 max-h-48 overflow-y-auto"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Clients View -->
+        <div id="clientsView" class="hidden">
+            <!-- Controls Section: Filters and Add Button -->
+            <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                    <!-- Filters -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:col-span-2 gap-4">
+                        <div class="sm:col-span-2 md:col-span-1 relative">
+                            <input type="text" id="searchInput" placeholder="Search..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i data-lucide="search" class="w-5 h-5 text-gray-400"></i></div>
+                        </div>
+                        <div>
+                             <select id="typeFilter" class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">All Types</option><option>Potential</option><option>Current</option><option>Broker</option><option>Past</option><option>VIP</option>
+                            </select>
+                        </div>
+                        <div>
+                             <select id="countryFilter" class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">All Countries</option>
+                            </select>
+                        </div>
+                    </div>
+            
+                    <!-- Actions Column -->
+                    <div class="space-y-4">
+                         <!-- Primary Action -->
+                        <div>
+                            <button id="addClientBtn" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-300 flex items-center justify-center gap-2 text-base"><i data-lucide="plus-circle" class="w-5 h-5"></i><span>Add Client</span></button>
+                        </div>
+                        
+                        <!-- Client List Actions -->
+                        <div class="p-3 border rounded-lg bg-gray-50">
+                            <h4 class="text-sm font-semibold text-gray-600 mb-2 text-center">Client List Actions</h4>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button id="exportCsvBtn" class="w-full bg-green-600 text-white font-bold py-2 px-2 rounded-lg hover:bg-green-700 transition duration-300 flex items-center justify-center gap-1 text-xs"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i><span>Export CSV</span></button>
+                                <label for="importClientsCsvInput" class="w-full bg-green-500 text-white font-bold py-2 px-2 rounded-lg hover:bg-green-600 transition duration-300 flex items-center justify-center gap-1 text-xs cursor-pointer"><i data-lucide="file-up" class="w-4 h-4"></i><span>Import CSV</span></label>
+                                <input type="file" id="importClientsCsvInput" class="hidden" accept=".csv">
+
+                                <button id="exportJsonBtn" class="w-full bg-blue-500 text-white font-bold py-2 px-2 rounded-lg hover:bg-blue-600 transition duration-300 flex items-center justify-center gap-1 text-xs"><i data-lucide="file-json-2" class="w-4 h-4"></i><span>Export JSON</span></button>
+                                <label for="importClientsJsonInput" class="w-full bg-blue-400 text-white font-bold py-2 px-2 rounded-lg hover:bg-blue-500 transition duration-300 flex items-center justify-center gap-1 text-xs cursor-pointer"><i data-lucide="file-up" class="w-4 h-4"></i><span>Import JSON</span></label>
+                                <input type="file" id="importClientsJsonInput" class="hidden" accept=".json">
+                            </div>
+                        </div>
+
+                        <!-- System Backup Actions -->
+                        <div class="p-3 border rounded-lg bg-gray-50">
+                            <h4 class="text-sm font-semibold text-gray-600 mb-2 text-center">System Backup</h4>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button id="exportBackupBtn" class="w-full bg-purple-600 text-white font-bold py-2 px-2 rounded-lg hover:bg-purple-700 transition duration-300 flex items-center justify-center gap-1 text-xs"><i data-lucide="save" class="w-4 h-4"></i><span>Export</span></button>
+                                <label for="importBackupInput" class="w-full bg-orange-500 text-white font-bold py-2 px-2 rounded-lg hover:bg-orange-600 transition duration-300 flex items-center justify-center gap-1 text-xs cursor-pointer"><i data-lucide="upload" class="w-4 h-4"></i><span>Import</span></label>
+                                <input type="file" id="importBackupInput" class="hidden" accept=".json">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Clients Table -->
+            <div class="bg-white rounded-lg shadow-md overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-600">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-4 py-3">#</th>
+                            <th scope="col" class="px-6 py-3 sortable" data-sort-key="companyName">Company Name</th>
+                            <th scope="col" class="px-6 py-3 hidden sm:table-cell">Primary Contact</th>
+                            <th scope="col" class="px-6 py-3 sortable" data-sort-key="type">Type</th>
+                            <th scope="col" class="px-6 py-3 hidden md:table-cell sortable" data-sort-key="stage">Stage</th>
+                            <th scope="col" class="px-6 py-3 hidden lg:table-cell">Next Task</th>
+                            <th scope="col" class="px-6 py-3 sortable" data-sort-key="followUpDate">Task Date</th>
+                            <th scope="col" class="px-6 py-3 text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clientsTableBody"></tbody>
+                </table>
+                 <div id="noClientsMessage" class="text-center py-12 text-gray-500 hidden">
+                    <i data-lucide="users" class="w-16 h-16 mx-auto text-gray-300"></i>
+                    <p class="mt-4 text-lg">No clients found.</p><p>Start by adding your first client!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sales Pipeline View -->
+        <div id="salesView" class="hidden">
+             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Pending Column -->
+                <div class="bg-gray-200 rounded-lg p-4">
+                    <h3 class="font-bold text-lg mb-4 text-gray-700 flex items-center gap-2"><i data-lucide="loader" class="w-5 h-5 text-yellow-500"></i>Pending</h3>
+                    <div id="pendingDeals" class="space-y-3 kanban-column"></div>
+                </div>
+                <!-- Won Column -->
+                <div class="bg-gray-200 rounded-lg p-4">
+                    <h3 class="font-bold text-lg mb-4 text-gray-700 flex items-center gap-2"><i data-lucide="check-circle" class="w-5 h-5 text-green-500"></i>Won</h3>
+                    <div id="wonDeals" class="space-y-3 kanban-column"></div>
+                </div>
+                <!-- Lost Column -->
+                <div class="bg-gray-200 rounded-lg p-4">
+                    <h3 class="font-bold text-lg mb-4 text-gray-700 flex items-center gap-2"><i data-lucide="x-circle" class="w-5 h-5 text-red-500"></i>Lost</h3>
+                    <div id="lostDeals" class="space-y-3 kanban-column"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Won Deals (Orders) View -->
+        <div id="wonDealsView" class="hidden">
+            <h2 class="text-2xl font-bold text-gray-700 mb-4">Won Deals (Purchase Orders)</h2>
+            <div class="bg-white rounded-lg shadow-md overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-600">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">Deal Name</th>
+                            <th scope="col" class="px-6 py-3">Client</th>
+                            <th scope="col" class="px-6 py-3">Total Value</th>
+                            <th scope="col" class="px-6 py-3">Total Paid</th>
+                            <th scope="col" class="px-6 py-3">Remaining Value</th>
+                            <th scope="col" class="px-6 py-3 text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="wonDealsTableBody"></tbody>
+                </table>
+                <div id="noWonDealsMessage" class="text-center py-12 text-gray-500 hidden">
+                    <i data-lucide="package-x" class="w-16 h-16 mx-auto text-gray-300"></i>
+                    <p class="mt-4 text-lg">No won deals found.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shipments View -->
+        <div id="shipmentsView" class="hidden">
+            <h2 class="text-2xl font-bold text-gray-700 mb-4">All Shipments</h2>
+            <div class="bg-white rounded-lg shadow-md overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-600">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">PO Number</th>
+                            <th scope="col" class="px-6 py-3">Deal Name</th>
+                            <th scope="col" class="px-6 py-3">Client</th>
+                            <th scope="col" class="px-6 py-3">Shipment Status</th>
+                            <th scope="col" class="px-6 py-3">Document Status</th>
+                            <th scope="col" class="px-6 py-3 text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="allShipmentsTableBody"></tbody>
+                </table>
+                <div id="noShipmentsMessage" class="text-center py-12 text-gray-500 hidden">
+                    <i data-lucide="search-x" class="w-16 h-16 mx-auto text-gray-300"></i>
+                    <p class="mt-4 text-lg">No shipments found.</p>
+                    <p>Add shipments to your won deals to see them here.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Follow-up Planner View -->
+        <div id="plannerView" class="hidden">
+            <h2 class="text-2xl font-bold text-gray-700 mb-4">Task Planner</h2>
+            <div class="bg-white rounded-lg shadow-md overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-600">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-4 py-3">#</th><th scope="col" class="px-6 py-3">Date</th><th scope="col" class="px-6 py-3">Client</th>
+                            <th scope="col" class="px-6 py-3 hidden sm:table-cell">Company</th><th scope="col" class="px-6 py-3">Task</th>
+                            <th scope="col" class="px-6 py-3">Status</th><th scope="col" class="px-6 py-3 text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="plannerTableBody"></tbody>
+                </table>
+                <div id="noFollowUpsMessage" class="text-center py-12 text-gray-500 hidden">
+                    <i data-lucide="calendar-off" class="w-16 h-16 mx-auto text-gray-300"></i>
+                    <p class="mt-4 text-lg">No scheduled tasks.</p><p>Schedule a task for a client to see it here.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports View -->
+        <div id="reportView" class="hidden">
+            <div class="bg-white rounded-lg shadow-md p-6 max-w-2xl mx-auto">
+                <h2 class="text-2xl font-bold text-gray-700 mb-4 text-center">Generate Performance Report</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label for="reportStartDate" class="block text-sm font-medium text-gray-700">Start Date</label>
+                        <input type="date" id="reportStartDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="reportEndDate" class="block text-sm font-medium text-gray-700">End Date</label>
+                        <input type="date" id="reportEndDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                </div>
+                <div class="flex justify-center">
+                    <button id="generateReportBtn" class="w-full md:w-auto bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition duration-300 flex items-center justify-center gap-2">
+                        <i data-lucide="file-text" class="w-5 h-5"></i>
+                        <span>Generate Report</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Printable Report View -->
+    <div id="printableReportView" class="hidden">
+        <div class="bg-white p-8 md:p-12" id="reportContent">
+            <!-- Report Header -->
+            <div class="text-center border-b-2 pb-4 mb-8">
+                <h1 class="text-3xl font-bold text-gray-800">Sales Performance Report</h1>
+                <p id="reportDateRange" class="text-gray-500 mt-2"></p>
+                <p id="reportGeneratedDate" class="text-xs text-gray-400 mt-1"></p>
+            </div>
+
+            <!-- Summary KPIs -->
+            <div class="mb-10">
+                <h2 class="text-xl font-bold text-gray-700 mb-4 border-b pb-2">Performance Summary</h2>
+                <div id="reportKpis" class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <!-- KPIs will be injected here -->
+                </div>
+            </div>
+
+            <!-- Deal Analysis -->
+            <div class="mb-10">
+                <h2 class="text-xl font-bold text-gray-700 mb-4 border-b pb-2">Deal Analysis</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="p-3 text-left font-semibold">Status</th>
+                                <th class="p-3 font-semibold">Count</th>
+                                <th class="p-3 font-semibold">Total Value</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportDealsTable">
+                            <!-- Deal data will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Recent Activities -->
+            <div>
+                <h2 class="text-xl font-bold text-gray-700 mb-4 border-b pb-2">Recent Activities & Follow-ups</h2>
+                <div class="overflow-x-auto">
+                     <table class="w-full text-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="p-3 text-left font-semibold">Date</th>
+                                <th class="p-3 text-left font-semibold">Client</th>
+                                <th class="p-3 text-left font-semibold">Type</th>
+                                <th class="p-3 text-left font-semibold">Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportActivityTable">
+                            <!-- Activity data will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="mt-8 text-center no-print flex justify-center gap-4">
+            <button id="backToAppBtn" class="bg-gray-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-gray-600 transition duration-300 flex items-center justify-center gap-2">
+                <i data-lucide="arrow-left-circle" class="w-5 h-5"></i>
+                <span>Back to Reports</span>
+            </button>
+            <button id="printReportBtn" class="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 transition duration-300 flex items-center justify-center gap-2">
+                <i data-lucide="printer" class="w-5 h-5"></i>
+                <span>Print Report</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Add/Edit Client Modal -->
+    <div id="clientModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start p-4 z-50 hidden modal-backdrop opacity-0 overflow-y-auto">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl modal-content transform scale-95 my-8" id="modalContent">
+            <form id="clientForm" class="p-6">
+                <div class="flex justify-between items-center border-b pb-3 mb-5">
+                    <h3 id="modalTitle" class="text-xl font-bold text-gray-700">Add New Client</h3>
+                    <button type="button" class="close-modal-btn text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+                </div>
+                <input type="hidden" id="clientId">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label for="companyName" class="block mb-2 text-sm font-medium">Company Name*</label><input type="text" id="companyName" class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" required></div>
+                    <div><label for="clientType" class="block mb-2 text-sm font-medium">Client Type</label><select id="clientType" class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"><option>Potential</option><option>Current</option><option>Broker</option><option>Past</option><option>VIP</option></select></div>
+                    <div><label for="country" class="block mb-2 text-sm font-medium">Country</label><input type="text" id="country" class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"></div>
+                    <div><label for="website" class="block mb-2 text-sm font-medium">Website</label><input type="url" id="website" class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="https://example.com"></div>
+                    <div id="clientStageWrapper" class="hidden"><label for="clientStage" class="block mb-2 text-sm font-medium">Lead Stage</label><select id="clientStage" class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"><option>New Lead</option><option>Contacted</option><option>Qualified</option><option>Proposal Sent</option><option>Negotiation</option></select></div>
+                    <div class="md:col-span-2"><label for="notes" class="block mb-2 text-sm font-medium">General Notes</label><textarea id="notes" rows="2" class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"></textarea></div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t">
+                    <h4 class="text-lg font-semibold mb-3 text-gray-700">Contacts</h4>
+                    <div id="contactsContainer" class="space-y-4">
+                        <!-- Contact entries will be injected here -->
+                    </div>
+                    <button type="button" id="addContactBtn" class="mt-4 text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i> Add Contact
+                    </button>
+                </div>
+
+                <div class="flex justify-end items-center mt-6 pt-4 border-t">
+                    <button type="button" class="cancel-btn text-gray-600 bg-gray-200 hover:bg-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-3">Cancel</button>
+                    <button type="submit" class="text-white bg-blue-600 hover:bg-blue-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Save Client</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- View Details Modal -->
+    <div id="viewModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start p-4 z-50 hidden modal-backdrop opacity-0 overflow-y-auto">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl modal-content transform scale-95 my-8">
+            <div class="p-6">
+                <div class="flex justify-between items-center border-b pb-3 mb-5">
+                    <h3 id="viewModalTitle" class="text-xl font-bold text-gray-700">Client Details</h3>
+                    <button type="button" class="close-modal-btn text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+                </div>
+                <div id="viewModalContent" class="text-sm"></div>
+                <div class="flex justify-end mt-4">
+                     <button type="button" class="cancel-btn text-gray-600 bg-gray-200 hover:bg-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Add/Edit Deal Modal -->
+    <div id="dealModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start p-4 z-50 hidden modal-backdrop opacity-0 overflow-y-auto">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl modal-content transform scale-95 my-8">
+            <form id="dealForm" class="p-6">
+                 <div class="flex justify-between items-center border-b pb-3 mb-5">
+                    <h3 id="dealModalTitle" class="text-xl font-bold text-gray-700">Add Deal</h3>
+                    <button type="button" class="close-modal-btn text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+                </div>
+                <input type="hidden" id="dealClientId">
+                <input type="hidden" id="dealId">
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label for="dealName" class="block mb-2 text-sm font-medium">Deal Name*</label><input type="text" id="dealName" class="w-full p-2 border rounded-lg" required></div>
+                         <div>
+                            <label for="dealAmount" class="block mb-2 text-sm font-medium">Deal Value*</label>
+                            <div class="flex">
+                                <input type="number" step="any" id="dealAmount" class="w-2/3 p-2 border rounded-l-lg bg-gray-100" required placeholder="e.g., 5000" readonly>
+                                <select id="dealCurrency" class="w-1/3 p-2 border-t border-b border-r rounded-r-lg">
+                                    <option value="USD">USD ($)</option>
+                                    <option value="EUR">EUR (€)</option>
+                                    <option value="EGP">EGP (E£)</option>
+                                    <option value="GBP">GBP (£)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div><label for="dealStatus" class="block mb-2 text-sm font-medium">Status</label><select id="dealStatus" class="w-full p-2 border rounded-lg"><option value="Pending">Pending</option><option value="Won">Won</option><option value="Lost">Lost</option></select></div>
+                        <div><label for="dealCloseDate" class="block mb-2 text-sm font-medium">Expected Close Date</label><input type="date" id="dealCloseDate" class="w-full p-2 border rounded-lg"></div>
+                    </div>
+                    
+                    <!-- New Product Details Section -->
+                    <div id="productDetailsFields" class="hidden pt-4 mt-4 border-t">
+                        <h4 class="text-md font-semibold mb-3 text-gray-600">Goods Details</h4>
+                        <div id="productsContainer" class="space-y-6">
+                           <!-- Product entries will be injected here by JS -->
+                        </div>
+                        <button type="button" id="addProductBtn" class="mt-4 text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                            <i data-lucide="plus-circle" class="w-4 h-4"></i> Add Another Product
+                        </button>
+                        <div class="mt-6">
+                            <label for="dealPaymentTerms" class="block mb-2 text-sm font-medium">Payment Terms</label>
+                            <input type="text" id="dealPaymentTerms" class="w-full p-2 border rounded-lg">
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <div>
+                                <label for="advancePaymentValue" class="block mb-2 text-sm font-medium">Advance Payment</label>
+                                <input type="number" step="any" id="advancePaymentValue" class="w-full p-2 border rounded-lg" placeholder="Value">
+                            </div>
+                            <div>
+                                <label for="advancePaymentPercentage" class="block mb-2 text-sm font-medium">Percentage (%)</label>
+                                <input type="number" step="any" id="advancePaymentPercentage" class="w-full p-2 border rounded-lg" placeholder="Percentage %">
+                            </div>
+                        </div>
+                         <div class="md:col-span-2 mt-6 pt-4 border-t">
+                            <h5 class="text-xl font-bold text-gray-800 flex justify-between items-center">
+                                <span>Total Contract Value:</span>
+                                <span id="calculatedTotalValue" class="text-blue-600">0.00 USD</span>
+                            </h5>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end items-center mt-6 pt-4 border-t">
+                    <button type="button" class="cancel-btn text-gray-600 bg-gray-200 hover:bg-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-3">Cancel</button>
+                    <button type="submit" class="text-white bg-blue-600 hover:bg-blue-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+     <!-- Add Interaction Modal -->
+    <div id="interactionModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50 hidden modal-backdrop opacity-0">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg modal-content transform scale-95">
+            <form id="interactionForm" class="p-6">
+                 <div class="flex justify-between items-center border-b pb-3 mb-5">
+                    <h3 class="text-xl font-bold text-gray-700">Add New Interaction</h3>
+                    <button type="button" class="close-modal-btn text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+                </div>
+                <input type="hidden" id="interactionClientId">
+                <div class="space-y-4">
+                    <div><label for="interactionType" class="block mb-2 text-sm font-medium">Interaction Type</label><select id="interactionType" class="w-full p-2 border rounded-lg"><option>Call</option><option>Email</option><option>Meeting</option><option>WhatsApp</option><option>Other</option></select></div>
+                    <div><label for="interactionDate" class="block mb-2 text-sm font-medium">Interaction Date</label><input type="datetime-local" id="interactionDate" class="w-full p-2 border rounded-lg"></div>
+                    <div><label for="interactionNotes" class="block mb-2 text-sm font-medium">Notes*</label><textarea id="interactionNotes" rows="4" class="w-full p-2 border rounded-lg" required></textarea></div>
+                    <div class="flex items-center">
+                        <input id="createFollowUpTask" type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 mr-2">
+                        <label for="createFollowUpTask" class="text-sm font-medium text-gray-900">Create a follow-up task</label>
+                    </div>
+                     <div id="followUpTaskFields" class="hidden space-y-4 pt-4 border-t">
+                          <div><label for="followUpTaskDate" class="block mb-2 text-sm font-medium">Follow-up Task Date</label><input type="date" id="followUpTaskDate" class="w-full p-2 border rounded-lg"></div>
+                          <div><label for="followUpTaskNotes" class="block mb-2 text-sm font-medium">Follow-up Task Description</label><input type="text" id="followUpTaskNotes" class="w-full p-2 border rounded-lg" placeholder="e.g., Send quotation..."></div>
+                    </div>
+                </div>
+                <div class="flex justify-end items-center mt-6 pt-4 border-t">
+                    <button type="button" class="cancel-btn text-gray-600 bg-gray-200 hover:bg-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-3">Cancel</button>
+                    <button type="submit" class="text-white bg-blue-600 hover:bg-blue-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Save Interaction</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50 hidden modal-backdrop opacity-0">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md modal-content transform scale-95">
+            <div class="p-6 text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100"><i data-lucide="alert-triangle" class="h-6 w-6 text-red-600"></i></div>
+                <h3 class="text-lg font-medium text-gray-900 mt-5">Delete Client</h3>
+                <p class="mt-2 text-sm text-gray-500">Are you sure you want to delete this client? All related deals and interactions will also be deleted. This action cannot be undone.</p>
+            </div>
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse rounded-b-lg">
+                <button type="button" id="confirmDeleteBtn" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 sm:ml-3 sm:w-auto sm:text-sm">Confirm Delete</button>
+                <button type="button" class="cancel-btn mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:w-auto sm:text-sm">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <!-- Shipment Management Modal -->
+    <div id="shipmentModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start p-4 z-[51] hidden modal-backdrop opacity-0 overflow-y-auto">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-7xl modal-content transform scale-95 my-8">
+            <div class="p-6">
+                <div class="flex justify-between items-center border-b pb-3 mb-5">
+                    <h3 id="shipmentModalTitle" class="text-xl font-bold text-gray-700">Manage Shipments</h3>
+                    <button type="button" class="close-modal-btn text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+                </div>
+                <div id="shipmentModalContent" class="max-h-[75vh] overflow-y-auto p-2"></div>
+                 <div class="flex justify-end mt-4 pt-4 border-t">
+                     <button type="button" class="cancel-btn text-gray-600 bg-gray-200 hover:bg-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notification Modal -->
+    <div id="notificationModal" class="fixed top-5 right-5 bg-red-500 text-white p-4 rounded-lg shadow-lg z-[100] hidden transform translate-x-full transition-transform duration-300">
+        <div class="flex items-center">
+            <span id="notificationIconContainer" class="mr-3">
+                <i data-lucide="alert-circle" class="w-6 h-6"></i>
+            </span>
+            <div>
+                <h4 id="notificationTitle" class="font-bold">Error</h4>
+                <p id="notificationMessage">Error message here.</p>
+            </div>
+            <button id="notificationClose" class="ml-4 text-white hover:text-gray-200">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Import Confirmation Modal -->
+    <div id="importConfirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50 hidden modal-backdrop opacity-0">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md modal-content transform scale-95">
+            <div class="p-6 text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100"><i data-lucide="alert-triangle" class="h-6 w-6 text-orange-600"></i></div>
+                <h3 class="text-lg font-medium text-gray-900 mt-5">Import Backup Data</h3>
+                <p class="mt-2 text-sm text-gray-500">Are you sure you want to import this file? All current data will be replaced by the contents of the backup file. This action cannot be undone.</p>
+            </div>
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse rounded-b-lg">
+                <button type="button" id="confirmImportBtn" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-orange-500 text-base font-medium text-white hover:bg-orange-600 sm:ml-3 sm:w-auto sm:text-sm">Confirm Import</button>
+                <button type="button" class="cancel-btn mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:w-auto sm:text-sm">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- This version uses LocalStorage for offline use. All data is saved in your browser. -->
+    <script type="module">
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+
+            const DOMElements = {
+                // Views and Links
+                dashboardViewLink: document.getElementById('dashboardViewLink'),
+                clientsViewLink: document.getElementById('clientsViewLink'),
+                salesViewLink: document.getElementById('salesViewLink'),
+                wonDealsViewLink: document.getElementById('wonDealsViewLink'),
+                shipmentsViewLink: document.getElementById('shipmentsViewLink'),
+                plannerViewLink: document.getElementById('plannerViewLink'),
+                reportViewLink: document.getElementById('reportViewLink'),
+                dashboardView: document.getElementById('dashboardView'),
+                clientsView: document.getElementById('clientsView'),
+                salesView: document.getElementById('salesView'),
+                wonDealsView: document.getElementById('wonDealsView'),
+                shipmentsView: document.getElementById('shipmentsView'),
+                plannerView: document.getElementById('plannerView'),
+                reportView: document.getElementById('reportView'),
+                printableReportView: document.getElementById('printableReportView'),
+                // Client Controls
+                addClientBtn: document.getElementById('addClientBtn'),
+                exportCsvBtn: document.getElementById('exportCsvBtn'),
+                exportJsonBtn: document.getElementById('exportJsonBtn'),
+                exportBackupBtn: document.getElementById('exportBackupBtn'),
+                importBackupInput: document.getElementById('importBackupInput'),
+                importClientsCsvInput: document.getElementById('importClientsCsvInput'),
+                importClientsJsonInput: document.getElementById('importClientsJsonInput'),
+                searchInput: document.getElementById('searchInput'),
+                typeFilter: document.getElementById('typeFilter'),
+                countryFilter: document.getElementById('countryFilter'),
+                clientsTableBody: document.getElementById('clientsTableBody'),
+                noClientsMessage: document.getElementById('noClientsMessage'),
+                // Won Deals
+                wonDealsTableBody: document.getElementById('wonDealsTableBody'),
+                noWonDealsMessage: document.getElementById('noWonDealsMessage'),
+                // Shipments
+                allShipmentsTableBody: document.getElementById('allShipmentsTableBody'),
+                noShipmentsMessage: document.getElementById('noShipmentsMessage'),
+                // Planner
+                plannerTableBody: document.getElementById('plannerTableBody'),
+                noFollowUpsMessage: document.getElementById('noFollowUpsMessage'),
+                // Reports
+                generateReportBtn: document.getElementById('generateReportBtn'),
+                printReportBtn: document.getElementById('printReportBtn'),
+                backToAppBtn: document.getElementById('backToAppBtn'),
+                reportStartDate: document.getElementById('reportStartDate'),
+                reportEndDate: document.getElementById('reportEndDate'),
+                // Modals
+                clientModal: document.getElementById('clientModal'),
+                clientForm: document.getElementById('clientForm'),
+                modalTitle: document.getElementById('modalTitle'),
+                viewModal: document.getElementById('viewModal'),
+                viewModalTitle: document.getElementById('viewModalTitle'),
+                viewModalContent: document.getElementById('viewModalContent'),
+                deleteModal: document.getElementById('deleteModal'),
+                confirmDeleteBtn: document.getElementById('confirmDeleteBtn'),
+                dealModal: document.getElementById('dealModal'),
+                dealForm: document.getElementById('dealForm'),
+                dealModalTitle: document.getElementById('dealModalTitle'),
+                interactionModal: document.getElementById('interactionModal'),
+                interactionForm: document.getElementById('interactionForm'),
+                createFollowUpTask: document.getElementById('createFollowUpTask'),
+                followUpTaskFields: document.getElementById('followUpTaskFields'),
+                shipmentModal: document.getElementById('shipmentModal'),
+                shipmentModalTitle: document.getElementById('shipmentModalTitle'),
+                shipmentModalContent: document.getElementById('shipmentModalContent'),
+                importConfirmModal: document.getElementById('importConfirmModal'),
+                confirmImportBtn: document.getElementById('confirmImportBtn'),
+                // Sales Pipeline
+                pendingDeals: document.getElementById('pendingDeals'),
+                wonDeals: document.getElementById('wonDeals'),
+                lostDeals: document.getElementById('lostDeals'),
+                // Dashboard
+                totalWonValue: document.getElementById('totalWonValue'),
+                winRate: document.getElementById('winRate'),
+                totalClients: document.getElementById('totalClients'),
+                averageDealValue: document.getElementById('averageDealValue'),
+                totalOutstandingValue: document.getElementById('totalOutstandingValue'),
+                coldClientsList: document.getElementById('coldClientsList'),
+                lostDealsDashboardList: document.getElementById('lostDealsDashboardList'),
+                pendingDealsDashboardList: document.getElementById('pendingDealsDashboardList'),
+                 // Notification Modal
+                notificationModal: document.getElementById('notificationModal'),
+                notificationTitle: document.getElementById('notificationTitle'),
+                notificationMessage: document.getElementById('notificationMessage'),
+                notificationClose: document.getElementById('notificationClose'),
+                notificationIconContainer: document.getElementById('notificationIconContainer'),
+            };
+
+            let clients = [];
+            let currentSortKey = null;
+            let currentSortDir = 'asc';
+            let salesPipelineChart, clientsByTypeChart;
+            let tempImportData = null;
+            
+            // --- LocalStorage Data Management ---
+            function loadClientsFromLocalStorage() {
+                const clientsJSON = localStorage.getItem('crm_clients_data');
+                clients = clientsJSON ? JSON.parse(clientsJSON) : [];
+                renderAll();
+            }
+
+            function saveClientsToLocalStorage() {
+                localStorage.setItem('crm_clients_data', JSON.stringify(clients));
+            }
+
+
+            // --- Notification System ---
+            function showNotification(message, title = 'Error', type = 'error') {
+                const modal = DOMElements.notificationModal;
+                const titleEl = DOMElements.notificationTitle;
+                const messageEl = DOMElements.notificationMessage;
+                const iconContainer = DOMElements.notificationIconContainer;
+
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+
+                modal.classList.remove('bg-red-500', 'bg-green-500');
+                if (type === 'error') {
+                    modal.classList.add('bg-red-500');
+                    iconContainer.innerHTML = `<i data-lucide="alert-circle" class="w-6 h-6"></i>`;
+                } else {
+                    modal.classList.add('bg-green-500');
+                    iconContainer.innerHTML = `<i data-lucide="check-circle" class="w-6 h-6"></i>`;
+                }
+                lucide.createIcons();
+
+                modal.classList.remove('hidden');
+                setTimeout(() => modal.classList.remove('translate-x-full'), 10);
+
+                setTimeout(() => {
+                   modal.classList.add('translate-x-full');
+                   setTimeout(() => modal.classList.add('hidden'), 300);
+                }, 4000);
+            }
+            
+            // --- Helper Functions ---
+            const toTitleCase = (str) => !str ? '' : str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+
+            function populateCountryFilter() {
+                const currentSelection = DOMElements.countryFilter.value;
+                const countries = [...new Set(clients.map(c => c.country).filter(Boolean))].sort();
+                DOMElements.countryFilter.innerHTML = '<option value="">All Countries</option>';
+                countries.forEach(country => {
+                    const option = document.createElement('option');
+                    option.value = country;
+                    option.textContent = toTitleCase(country);
+                    DOMElements.countryFilter.appendChild(option);
+                });
+                DOMElements.countryFilter.value = currentSelection;
+            }
+
+            const formatCurrency = (amount, currency = 'USD') => {
+                try {
+                    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+                } catch (e) {
+                    return `${(amount || 0).toFixed(2)} ${currency}`;
+                }
+            };
+            const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString('en-GB') : 'N/A';
+            const formatDateTime = (dateString) => dateString ? new Date(dateString).toLocaleString('en-GB') : '';
+            
+            // --- Rendering Functions ---
+            function renderAll() {
+                populateCountryFilter();
+                applyFiltersAndSort();
+                renderFollowUpPlanner();
+                renderSalesPipeline();
+                renderWonDealsView();
+                renderAllShipmentsView();
+                renderDashboard();
+                lucide.createIcons();
+            }
+            
+            const getClientTypeClass = (type) => ({'Current':'bg-green-100 text-green-800','VIP':'bg-yellow-100 text-yellow-800','Past':'bg-gray-200 text-gray-800','Broker':'bg-purple-100 text-purple-800','Potential':'bg-blue-100 text-blue-800'}[type] || 'bg-blue-100 text-blue-800');
+
+            const renderClients = (filteredClients = clients) => {
+                DOMElements.clientsTableBody.innerHTML = ''; 
+                DOMElements.noClientsMessage.classList.toggle('hidden', filteredClients.length > 0);
+                const today = new Date(); today.setHours(0, 0, 0, 0);
+
+                filteredClients.forEach((client, index) => {
+                    const tr = document.createElement('tr');
+                    let highlightClass = 'bg-white';
+                    if (client.followUpDate) {
+                        const followUpDate = new Date(client.followUpDate + 'T00:00:00');
+                        if (followUpDate < today) highlightClass = 'bg-red-100 hover:bg-red-200';
+                        else if (followUpDate.getTime() === today.getTime()) highlightClass = 'bg-yellow-100 hover:bg-yellow-200';
+                    }
+                    tr.className = `${highlightClass} border-b`;
+                    tr.innerHTML = `
+                        <td class="px-4 py-4 text-gray-500">${index + 1}</td>
+                        <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">${client.companyName}</td>
+                        <td class="px-6 py-4 hidden sm:table-cell">${(client.contacts && client.contacts[0]) ? client.contacts[0].name : 'N/A'}</td>
+                        <td class="px-6 py-4"><span class="px-2 py-1 text-xs font-medium rounded-full ${getClientTypeClass(client.type)}">${client.type || 'N/A'}</span></td>
+                        <td class="px-6 py-4 hidden md:table-cell">${client.type === 'Potential' ? (client.stage || 'N/A') : ''}</td>
+                        <td class="px-6 py-4 text-sm text-gray-600 hidden lg:table-cell">${client.nextAction || 'N/A'}</td>
+                        <td class="px-6 py-4 text-sm font-bold text-gray-800">${formatDate(client.followUpDate)}</td>
+                        <td class="px-6 py-4 text-center flex items-center justify-center gap-1">
+                            <button class="view-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-1 px-2 text-xs rounded" data-id="${client.id}" title="View">View</button>
+                            <button class="edit-btn p-1" data-id="${client.id}" title="Edit"><i data-lucide="edit" class="w-5 h-5 text-blue-600"></i></button>
+                            <button class="delete-btn p-1" data-id="${client.id}" title="Delete"><i data-lucide="trash-2" class="w-5 h-5 text-red-600"></i></button>
+                        </td>`;
+                    DOMElements.clientsTableBody.appendChild(tr);
+                });
+            };
+
+            const renderFollowUpPlanner = () => {
+                const allFollowUps = clients.filter(c => c.followUpDate);
+                DOMElements.plannerTableBody.innerHTML = '';
+                DOMElements.noFollowUpsMessage.classList.toggle('hidden', allFollowUps.length > 0);
+                if (allFollowUps.length === 0) return;
+                const today = new Date(); today.setHours(0, 0, 0, 0);
+                const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+                const overdueTasks = allFollowUps.filter(c => new Date(c.followUpDate + 'T00:00:00') < yesterday).sort((a, b) => new Date(a.followUpDate) - new Date(b.followUpDate));
+                const yesterdayTasks = allFollowUps.filter(c => new Date(c.followUpDate + 'T00:00:00').getTime() === yesterday.getTime());
+                const todayTasks = allFollowUps.filter(c => new Date(c.followUpDate + 'T00:00:00').getTime() === today.getTime());
+                const upcomingTasks = allFollowUps.filter(c => new Date(c.followUpDate + 'T00:00:00') > today).sort((a, b) => new Date(a.followUpDate) - new Date(b.followUpDate));
+                let taskCounter = 1;
+                const createRow = (client, statusText, statusClass) => {
+                    const tr = document.createElement('tr');
+                    tr.className = `border-b ${statusClass.split(' ')[0]}`;
+                    tr.innerHTML = `
+                        <td class="px-4 py-4">${taskCounter++}</td>
+                        <td class="px-6 py-4 font-bold">${formatDate(client.followUpDate)}</td>
+                        <td class="px-6 py-4 font-medium">${client.companyName}</td>
+                        <td class="px-6 py-4 hidden sm:table-cell">${(client.contacts && client.contacts[0]) ? client.contacts[0].name : ''}</td>
+                        <td class="px-6 py-4">${client.nextAction || 'N/A'}</td>
+                        <td class="px-6 py-4"><span class="px-2 py-1 text-xs font-medium rounded-full ${statusClass}">${statusText}</span></td>
+                        <td class="px-6 py-4 text-center flex items-center justify-center gap-1">
+                             <button class="view-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-1 px-2 text-xs rounded" data-id="${client.id}" title="View">View</button>
+                            <button class="done-btn p-1" data-id="${client.id}" title="Done"><i data-lucide="check-circle-2" class="w-5 h-5 text-green-600"></i></button>
+                        </td>`;
+                    return tr;
+                };
+                const createSection = (title, tasks, statusText, statusClass, titleClass) => {
+                    if (tasks.length > 0) {
+                        const tbody = document.createElement('tbody');
+                        tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-2 font-bold text-lg ${titleClass} bg-gray-50">${title}</td></tr>`;
+                        tasks.forEach(task => tbody.appendChild(createRow(task, statusText || title, statusClass)));
+                        DOMElements.plannerTableBody.appendChild(tbody);
+                    }
+                };
+                createSection('Overdue', overdueTasks, 'Overdue', 'bg-red-100 text-red-800', 'text-red-600');
+                createSection('Yesterday', yesterdayTasks, 'Yesterday', 'bg-gray-200 text-gray-800', 'text-gray-600');
+                createSection('Today', todayTasks, 'Today', 'bg-yellow-100 text-yellow-800', 'text-yellow-600');
+                createSection('Upcoming', upcomingTasks, 'Upcoming', 'bg-blue-100 text-blue-800', 'text-blue-600');
+            };
+            
+            const renderSalesPipeline = () => {
+                const allDeals = clients.flatMap(c => (c.deals || []).map(d => ({...d, clientName: c.companyName, clientId: c.id })));
+                DOMElements.pendingDeals.innerHTML = '';
+                DOMElements.wonDeals.innerHTML = '';
+                DOMElements.lostDeals.innerHTML = '';
+                allDeals.forEach(deal => {
+                    const dealCard = document.createElement('div');
+                    dealCard.className = 'bg-white p-3 rounded-md shadow cursor-pointer';
+                    dealCard.dataset.dealId = deal.dealId;
+                    dealCard.dataset.clientId = deal.clientId;
+                    dealCard.innerHTML = `
+                        <h4 class="font-bold">${deal.name}</h4>
+                        <p class="text-sm text-gray-600">${deal.clientName}</p>
+                        <p class="text-sm font-bold mt-2">${formatCurrency(deal.amount, deal.currency)}</p>
+                        ${deal.closeDate ? `<p class="text-xs text-gray-500 mt-1">Close Date: ${formatDate(deal.closeDate)}</p>` : ''}`;
+                    if (deal.status === 'Won') DOMElements.wonDeals.appendChild(dealCard);
+                    else if (deal.status === 'Lost') DOMElements.lostDeals.appendChild(dealCard);
+                    else DOMElements.pendingDeals.appendChild(dealCard);
+                });
+            };
+
+            const renderWonDealsView = () => {
+                const allWonDeals = clients.flatMap(c => (c.deals || []).filter(d => d.status === 'Won').map(d => ({ ...d, clientName: c.companyName, clientId: c.id })));
+                DOMElements.wonDealsTableBody.innerHTML = '';
+                DOMElements.noWonDealsMessage.classList.toggle('hidden', allWonDeals.length > 0);
+                allWonDeals.forEach(deal => {
+                    const advancePayment = (deal.productDetails?.advancePaymentConfirmed) ? (deal.productDetails?.advancePaymentValue || 0) : 0;
+                    const invoicePayments = (deal.shipments || []).flatMap(s => s.payments || []).reduce((sum, p) => sum + p.amount, 0);
+                    const totalPaidValue = advancePayment + invoicePayments;
+                    const remainingValue = deal.amount - totalPaidValue;
+                    
+                    const tr = document.createElement('tr');
+                    tr.className = 'bg-white border-b';
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 font-medium">${deal.name}</td>
+                        <td class="px-6 py-4">${deal.clientName}</td>
+                        <td class="px-6 py-4 font-bold">${formatCurrency(deal.amount, deal.currency)}</td>
+                        <td class="px-6 py-4 text-green-600 font-semibold">${formatCurrency(totalPaidValue, deal.currency)}</td>
+                        <td class="px-6 py-4 text-red-600 font-semibold">${formatCurrency(remainingValue, deal.currency)}</td>
+                        <td class="px-6 py-4 text-center">
+                            <button class="manage-shipments-btn bg-blue-500 text-white text-xs font-bold py-1 px-3 rounded" data-client-id="${deal.clientId}" data-deal-id="${deal.dealId}">Manage Shipments</button>
+                        </td>`;
+                    DOMElements.wonDealsTableBody.appendChild(tr);
+                });
+            };
+
+            const renderAllShipmentsView = () => {
+                const allShipments = clients.flatMap(c => 
+                    (c.deals || []).flatMap(d => 
+                        (d.shipments || []).map(s => ({...s, dealName: d.name, clientId: c.id, clientName: c.companyName, dealId: d.dealId }))
+                    )
+                );
+                DOMElements.allShipmentsTableBody.innerHTML = '';
+                DOMElements.noShipmentsMessage.classList.toggle('hidden', allShipments.length > 0);
+                allShipments.forEach(shipment => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'bg-white border-b';
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 font-mono text-xs">${shipment.poNumber || 'N/A'}</td>
+                        <td class="px-6 py-4">${shipment.dealName}</td>
+                        <td class="px-6 py-4 font-medium">${shipment.clientName}</td>
+                        <td class="px-6 py-4">${shipment.status || 'N/A'}</td>
+                        <td class="px-6 py-4">${shipment.docStatus || 'N/A'}</td>
+                        <td class="px-6 py-4 text-center">
+                            <button class="manage-shipments-btn bg-blue-500 text-white text-xs font-bold py-1 px-3 rounded" data-client-id="${shipment.clientId}" data-deal-id="${shipment.dealId}">Manage Shipments</button>
+                        </td>`;
+                    DOMElements.allShipmentsTableBody.appendChild(tr);
+                });
+            };
+            
+            const renderDashboard = () => {
+                const allDeals = clients.flatMap(c => c.deals || []);
+                const wonDeals = allDeals.filter(d => d.status === 'Won');
+                const winRate = allDeals.length > 0 ? (wonDeals.length / allDeals.length * 100).toFixed(0) : 0;
+                const totalValueByCurrency = wonDeals.reduce((acc, deal) => {
+                    const currency = deal.currency || 'USD';
+                    acc[currency] = (acc[currency] || 0) + deal.amount;
+                    return acc;
+                }, {});
+                const totalValueString = Object.keys(totalValueByCurrency).length > 0
+                    ? Object.entries(totalValueByCurrency).map(([currency, amount]) => formatCurrency(amount, currency)).join(' | ')
+                    : formatCurrency(0, 'USD');
+                DOMElements.totalWonValue.textContent = totalValueString;
+                const dealCountByCurrency = wonDeals.reduce((acc, deal) => {
+                    const currency = deal.currency || 'USD';
+                    acc[currency] = (acc[currency] || 0) + 1;
+                    return acc;
+                }, {});
+                const avgValueString = Object.keys(totalValueByCurrency).length > 0
+                    ? Object.entries(totalValueByCurrency).map(([currency, total]) => {
+                        const count = dealCountByCurrency[currency] || 1;
+                        return formatCurrency(total / count, currency);
+                      }).join(' | ')
+                    : formatCurrency(0, 'USD');
+                DOMElements.averageDealValue.textContent = avgValueString;
+                DOMElements.winRate.textContent = `${winRate}%`;
+                DOMElements.totalClients.textContent = clients.length;
+                const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                const coldClients = clients.filter(client => {
+                    const lastInteraction = (client.interactionHistory && client.interactionHistory.length > 0) ? new Date(Math.max(...client.interactionHistory.map(i => new Date(i.date)))) : null;
+                    return !lastInteraction || lastInteraction < thirtyDaysAgo;
+                });
+                DOMElements.coldClientsList.innerHTML = '';
+                if(coldClients.length === 0){
+                   DOMElements.coldClientsList.innerHTML = `<li class="text-gray-500 text-sm">No clients need follow-up.</li>`;
+                } else {
+                    coldClients.forEach(client => {
+                        const li = document.createElement('li');
+                        li.className = 'p-2 bg-red-50 rounded-md flex justify-between items-center text-sm';
+                        li.innerHTML = `<span>${client.companyName}</span><button class="view-btn text-blue-600 font-semibold" data-id="${client.id}">View</button>`;
+                        DOMElements.coldClientsList.appendChild(li);
+                    });
+                }
+                const pendingDeals = clients.flatMap(c => (c.deals || []).map(d => ({...d, clientName: c.companyName, clientId: c.id })))
+                                        .filter(d => d.status === 'Pending' && d.closeDate)
+                                        .sort((a, b) => new Date(a.closeDate) - new Date(b.closeDate))
+                                        .slice(0, 5);
+                DOMElements.pendingDealsDashboardList.innerHTML = '';
+                if (pendingDeals.length === 0) {
+                    DOMElements.pendingDealsDashboardList.innerHTML = `<li class="text-gray-500 text-sm">No pending deals with deadlines.</li>`;
+                } else {
+                    pendingDeals.forEach(deal => {
+                        const li = document.createElement('li');
+                        li.className = 'text-sm cursor-pointer hover:bg-gray-100 p-1 rounded-md';
+                        li.dataset.clientId = deal.clientId;
+                        li.dataset.dealId = deal.dealId;
+                        li.innerHTML = `
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold">${deal.clientName}</span>
+                                <span class="text-gray-500">${formatCurrency(deal.amount, deal.currency)}</span>
+                            </div>
+                            <p class="text-xs text-gray-500">${deal.name} - Due: ${formatDate(deal.closeDate)}</p>`;
+                        DOMElements.pendingDealsDashboardList.appendChild(li);
+                    });
+                }
+                const lostDeals = clients.flatMap(c => (c.deals || []).map(d => ({...d, clientName: c.companyName, clientId: c.id })))
+                                        .filter(d => d.status === 'Lost')
+                                        .sort((a, b) => new Date(b.closeDate) - new Date(a.closeDate))
+                                        .slice(0, 5);
+                DOMElements.lostDealsDashboardList.innerHTML = '';
+                if (lostDeals.length === 0) {
+                    DOMElements.lostDealsDashboardList.innerHTML = `<li class="text-gray-500 text-sm">No recent lost deals.</li>`;
+                } else {
+                    lostDeals.forEach(deal => {
+                        const li = document.createElement('li');
+                        li.className = 'text-sm cursor-pointer hover:bg-gray-100 p-1 rounded-md';
+                        li.dataset.clientId = deal.clientId;
+                        li.dataset.dealId = deal.dealId;
+                        li.innerHTML = `
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold">${deal.clientName}</span>
+                                <span class="text-gray-500">${formatCurrency(deal.amount, deal.currency)}</span>
+                            </div>
+                            <p class="text-xs text-gray-500">${deal.name}</p>`;
+                        DOMElements.lostDealsDashboardList.appendChild(li);
+                    });
+                }
+                const clientTypeCounts = clients.reduce((acc, c) => { acc[c.type] = (acc[c.type] || 0) + 1; return acc; }, {});
+                const dealStatusCounts = allDeals.reduce((acc, d) => { acc[d.status] = (acc[d.status] || 0) + 1; return acc; }, {});
+                if(clientsByTypeChart) clientsByTypeChart.destroy();
+                clientsByTypeChart = new Chart(document.getElementById('clientsByTypeChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(clientTypeCounts),
+                        datasets: [{ data: Object.values(clientTypeCounts), backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#6366F1', '#8B5CF6'] }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } },
+                        onClick: (event, elements, chart) => {
+                            if (elements.length > 0 && chart?.data?.labels) {
+                                const label = chart.data.labels[elements[0].index];
+                                DOMElements.typeFilter.value = label;
+                                switchView('clients');
+                            }
+                        }
+                    }
+                });
+                if(salesPipelineChart) salesPipelineChart.destroy();
+                salesPipelineChart = new Chart(document.getElementById('salesPipelineChart'), {
+                    type: 'bar',
+                    data: { labels: Object.keys(dealStatusCounts), datasets: [{ label: 'Number of Deals', data: Object.values(dealStatusCounts), backgroundColor: ['#F59E0B', '#10B981', '#EF4444'] }] },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+                });
+                
+                const outstandingByCurrency = clients.flatMap(c => c.deals || [])
+                    .flatMap(d => d.shipments || [])
+                    .reduce((acc, shipment) => {
+                        const invoice = shipment.invoice;
+                        if (invoice && invoice.amount) {
+                           const totalPaidForInvoice = (shipment.payments || []).reduce((sum, p) => sum + p.amount, 0);
+                           const outstanding = invoice.amount - totalPaidForInvoice;
+                           if (outstanding > 0.001) { // Use a small epsilon for float comparison
+                                const currency = invoice.currency || 'USD';
+                                acc[currency] = (acc[currency] || 0) + outstanding;
+                           }
+                        }
+                        return acc;
+                    }, {});
+                const outstandingString = Object.keys(outstandingByCurrency).length > 0
+                    ? Object.entries(outstandingByCurrency).map(([currency, amount]) => formatCurrency(amount, currency)).join(' | ')
+                    : formatCurrency(0, 'USD');
+                DOMElements.totalOutstandingValue.textContent = outstandingString;
+            };
+
+            // --- Modal Logic ---
+            const openModal = (modal) => { modal.classList.remove('hidden'); setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('.modal-content').classList.remove('scale-95'); }, 10); };
+            const closeModal = (modal) => {
+                if (!modal) return;
+                modal.classList.add('opacity-0');
+                modal.querySelector('.modal-content').classList.add('scale-95');
+                setTimeout(() => { 
+                    modal.classList.add('hidden'); 
+                }, 300);
+            };
+            
+            // --- View Switching ---
+            function switchView(viewToShow) {
+                const views = {
+                    dashboard: { view: DOMElements.dashboardView, link: DOMElements.dashboardViewLink },
+                    clients: { view: DOMElements.clientsView, link: DOMElements.clientsViewLink },
+                    sales: { view: DOMElements.salesView, link: DOMElements.salesViewLink },
+                    wonDeals: { view: DOMElements.wonDealsView, link: DOMElements.wonDealsViewLink },
+                    shipments: { view: DOMElements.shipmentsView, link: DOMElements.shipmentsViewLink },
+                    planner: { view: DOMElements.plannerView, link: DOMElements.plannerViewLink },
+                    reports: { view: DOMElements.reportView, link: DOMElements.reportViewLink },
+                    printableReport: { view: DOMElements.printableReportView, link: DOMElements.reportViewLink } 
+                };
+                Object.values(views).forEach(item => {
+                    item.view.classList.add('hidden');
+                    if(item.link) item.link.classList.replace('nav-btn-active', 'nav-btn-inactive');
+                });
+                views[viewToShow].view.classList.remove('hidden');
+                views[viewToShow].link.classList.replace('nav-btn-inactive', 'nav-btn-active');
+                
+                if (viewToShow !== 'printableReport') {
+                    document.querySelector('.container').classList.remove('hidden');
+                } else {
+                     document.querySelector('.container').classList.add('hidden');
+                }
+
+                const renderFunction = {
+                    dashboard: renderDashboard,
+                    clients: applyFiltersAndSort,
+                    sales: renderSalesPipeline,
+                    wonDeals: renderWonDealsView,
+                    shipments: renderAllShipmentsView,
+                    planner: renderFollowUpPlanner
+                }[viewToShow];
+
+                if(renderFunction) renderFunction();
+                lucide.createIcons();
+            }
+
+            // --- Calculation Logic for Deals ---
+            function calculateTotalValue() {
+                let totalValue = 0;
+                const currency = document.getElementById('dealCurrency').value;
+                const productEntries = document.querySelectorAll('.product-entry');
+
+                productEntries.forEach(entry => {
+                    const packageCount = parseFloat(entry.querySelector('.product-package-count').value) || 0;
+                    const netWeight = parseFloat(entry.querySelector('.product-net-weight').value) || 0;
+                    const pricePerKg = parseFloat(entry.querySelector('.product-price-per-kg').value) || 0;
+                    totalValue += packageCount * netWeight * pricePerKg;
+                });
+                
+                const totalAmountInput = document.getElementById('dealAmount');
+                const advanceValueInput = document.getElementById('advancePaymentValue');
+                const advancePercentInput = document.getElementById('advancePaymentPercentage');
+
+                totalAmountInput.value = totalValue.toFixed(2);
+                document.getElementById('calculatedTotalValue').textContent = formatCurrency(totalValue, currency);
+                
+                if (document.activeElement === advanceValueInput && totalValue > 0) {
+                    const percentage = (parseFloat(advanceValueInput.value) / totalValue) * 100;
+                    advancePercentInput.value = isFinite(percentage) ? percentage.toFixed(2) : '0.00';
+                }
+                else if (document.activeElement === advancePercentInput) {
+                    const value = totalValue * (parseFloat(advancePercentInput.value) / 100);
+                    advanceValueInput.value = isFinite(value) ? value.toFixed(2) : '0.00';
+                }
+            }
+            
+            // --- Dynamic Product & Contact Entry Management ---
+            function createContactEntry(contact = {}) {
+                const container = document.getElementById('contactsContainer');
+                const div = document.createElement('div');
+                div.className = 'contact-entry p-4 border rounded-lg bg-gray-50 relative';
+                div.innerHTML = `
+                    <button type="button" class="absolute top-2 right-2 remove-contact-btn text-red-500 hover:text-red-700 p-1">
+                        <i data-lucide="x-circle" class="w-5 h-5"></i>
+                    </button>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div><label class="block mb-2 text-sm font-medium">Name*</label><input type="text" value="${contact.name || ''}" class="contact-name bg-white border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></div>
+                        <div><label class="block mb-2 text-sm font-medium">Title</label><input type="text" value="${contact.title || ''}" class="contact-title bg-white border border-gray-300 text-sm rounded-lg block w-full p-2.5"></div>
+                        <div><label class="block mb-2 text-sm font-medium">Department</label><input type="text" value="${contact.department || ''}" class="contact-department bg-white border border-gray-300 text-sm rounded-lg block w-full p-2.5"></div>
+                        <div><label class="block mb-2 text-sm font-medium">Phone</label><input type="tel" value="${contact.phone || ''}" class="contact-phone bg-white border border-gray-300 text-sm rounded-lg block w-full p-2.5"></div>
+                        <div><label class="block mb-2 text-sm font-medium">Mobile</label><input type="tel" value="${contact.mobile || ''}" class="contact-mobile bg-white border border-gray-300 text-sm rounded-lg block w-full p-2.5"></div>
+                        <div><label class="block mb-2 text-sm font-medium">Fax</label><input type="tel" value="${contact.fax || ''}" class="contact-fax bg-white border border-gray-300 text-sm rounded-lg block w-full p-2.5"></div>
+                        <div class="md:col-span-3"><label class="block mb-2 text-sm font-medium">Email</label><input type="email" value="${contact.email || ''}" class="contact-email bg-white border border-gray-300 text-sm rounded-lg block w-full p-2.5"></div>
+                    </div>
+                `;
+                container.appendChild(div);
+                lucide.createIcons();
+            }
+
+            function createProductEntry(product = {}) {
+                const container = document.getElementById('productsContainer');
+                const productIndex = container.children.length;
+                const div = document.createElement('div');
+                div.className = 'product-entry p-4 border rounded-lg bg-gray-50 relative';
+                div.innerHTML = `
+                    <button type="button" class="absolute top-2 right-2 remove-product-btn text-red-500 hover:text-red-700 p-1">
+                        <i data-lucide="x-circle" class="w-5 h-5"></i>
+                    </button>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="block mb-2 text-sm font-medium">Product Description ${productIndex + 1}</label>
+                            <textarea rows="2" class="w-full p-2 border rounded-lg product-description">${product.description || ''}</textarea>
+                        </div>
+                         <div>
+                            <label class="block mb-2 text-sm font-medium">Number of Packages</label>
+                            <input type="number" value="${product.packageCount || ''}" class="w-full p-2 border rounded-lg calculation-input product-package-count">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium">Net Weight per Package (KG)</label>
+                            <input type="number" step="any" value="${product.netWeightPerPackage || ''}" class="w-full p-2 border rounded-lg calculation-input product-net-weight">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium">Package Type</label>
+                            <input type="text" value="${product.packageType || ''}" class="w-full p-2 border rounded-lg product-package-type">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium">Price per KG</label>
+                            <input type="number" step="any" value="${product.pricePerKg || ''}" class="w-full p-2 border rounded-lg calculation-input product-price-per-kg">
+                        </div>
+                         <div>
+                            <label class="block mb-2 text-sm font-medium">Packages / Container</label>
+                            <input type="number" value="${product.packagesPerContainer || ''}" class="w-full p-2 border rounded-lg product-packages-per-container">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium">Number of Containers</label>
+                            <input type="number" value="${product.containerCount || ''}" class="w-full p-2 border rounded-lg product-container-count">
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+                lucide.createIcons();
+            }
+
+            // --- Report Generation ---
+            function generateReport() {
+                const startDateStr = DOMElements.reportStartDate.value;
+                const endDateStr = DOMElements.reportEndDate.value;
+
+                if (!startDateStr || !endDateStr) {
+                    showNotification('Please select a start and end date for the report.');
+                    return;
+                }
+
+                const startDate = new Date(startDateStr + 'T00:00:00');
+                const endDate = new Date(endDateStr + 'T23:59:59');
+
+                // --- Data Filtering ---
+                const newClients = clients.filter(c => {
+                    if (!c.creationDate) return false;
+                    const creationDate = new Date(c.creationDate);
+                    return creationDate >= startDate && creationDate <= endDate;
+                });
+
+                const allInteractions = clients.flatMap(c => 
+                    (c.interactionHistory || []).map(i => ({...i, clientName: c.companyName}))
+                );
+
+                const interactionsInPeriod = allInteractions.filter(i => {
+                    const interactionDate = new Date(i.date);
+                    return interactionDate >= startDate && interactionDate <= endDate;
+                }).sort((a,b) => new Date(b.date) - new Date(a.date));
+
+                const contactedClientNames = [...new Set(interactionsInPeriod.map(i => i.clientName))];
+
+                const allDeals = clients.flatMap(c => (c.deals || []).map(d => ({...d, clientName: c.companyName})));
+                
+                const dealsInPeriod = allDeals.filter(d => {
+                     const closeDate = d.closeDate ? new Date(d.closeDate + 'T00:00:00') : null;
+                     return closeDate && closeDate >= startDate && closeDate <= endDate;
+                });
+
+                const wonDeals = dealsInPeriod.filter(d => d.status === 'Won');
+                const lostDeals = dealsInPeriod.filter(d => d.status === 'Lost');
+                
+                const pendingDeals = allDeals.filter(d => {
+                    const dealIdTime = d.dealId.split('_')[1];
+                    if (!dealIdTime) return false;
+                    const creationDate = new Date(parseInt(dealIdTime));
+                    return d.status === 'Pending' && creationDate >= startDate && creationDate <= endDate;
+                });
+
+
+                const calculateTotalValue = (deals) => {
+                    const totals = {};
+                    deals.forEach(d => {
+                        totals[d.currency] = (totals[d.currency] || 0) + d.amount;
+                    });
+                    return Object.entries(totals).map(([currency, amount]) => formatCurrency(amount, currency)).join(' | ') || formatCurrency(0, 'USD');
+                };
+
+                // --- Populate Report ---
+                document.getElementById('reportDateRange').textContent = `For the period from ${formatDate(startDateStr)} to ${formatDate(endDateStr)}`;
+                document.getElementById('reportGeneratedDate').textContent = `Generated on: ${new Date().toLocaleString('en-US')}`;
+
+                // KPIs
+                const kpisContainer = document.getElementById('reportKpis');
+                kpisContainer.innerHTML = `
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <p class="text-sm text-gray-500">New Clients</p>
+                        <p class="text-2xl font-bold">${newClients.length}</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <p class="text-sm text-gray-500">Contacted Clients</p>
+                        <p class="text-2xl font-bold">${contactedClientNames.length}</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <p class="text-sm text-gray-500">Total Activities</p>
+                        <p class="text-2xl font-bold">${interactionsInPeriod.length}</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <p class="text-sm text-gray-500">Won Deals</p>
+                        <p class="text-2xl font-bold text-green-600">${wonDeals.length}</p>
+                    </div>
+                `;
+
+                // Deals Table
+                const dealsTable = document.getElementById('reportDealsTable');
+                dealsTable.innerHTML = `
+                    <tr class="border-b bg-green-50">
+                        <td class="p-3 text-left">Won</td>
+                        <td class="p-3 font-medium">${wonDeals.length}</td>
+                        <td class="p-3 font-medium">${calculateTotalValue(wonDeals)}</td>
+                    </tr>
+                    <tr class="border-b bg-red-50">
+                        <td class="p-3 text-left">Lost</td>
+                        <td class="p-3 font-medium">${lostDeals.length}</td>
+                        <td class="p-3 font-medium">${calculateTotalValue(lostDeals)}</td>
+                    </tr>
+                     <tr class="border-b bg-yellow-50">
+                        <td class="p-3 text-left">Pending</td>
+                        <td class="p-3 font-medium">${pendingDeals.length}</td>
+                        <td class="p-3 font-medium">${calculateTotalValue(pendingDeals)}</td>
+                    </tr>
+                `;
+
+                // Activity Table
+                const activityTable = document.getElementById('reportActivityTable');
+                if (interactionsInPeriod.length > 0) {
+                    activityTable.innerHTML = interactionsInPeriod.map(i => `
+                        <tr class="border-b">
+                            <td class="p-2 text-left">${formatDateTime(i.date)}</td>
+                            <td class="p-2 text-left">${i.clientName}</td>
+                            <td class="p-2 text-left">${i.type}</td>
+                            <td class="p-2 text-left">${i.notes}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                     activityTable.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-500">No activities in this period.</td></tr>`;
+                }
+
+                // Show the report
+                switchView('printableReport');
+            }
+            
+            // --- Event Listeners Setup ---
+            function setupEventListeners() {
+                DOMElements.dashboardViewLink.addEventListener('click', () => switchView('dashboard'));
+                DOMElements.clientsViewLink.addEventListener('click', () => switchView('clients'));
+                DOMElements.salesViewLink.addEventListener('click', () => switchView('sales'));
+                DOMElements.wonDealsViewLink.addEventListener('click', () => switchView('wonDeals'));
+                DOMElements.shipmentsViewLink.addEventListener('click', () => switchView('shipments'));
+                DOMElements.plannerViewLink.addEventListener('click', () => switchView('planner'));
+                DOMElements.reportViewLink.addEventListener('click', () => switchView('reports'));
+                DOMElements.addClientBtn.addEventListener('click', openAddClientModal);
+                DOMElements.clientForm.addEventListener('submit', handleClientFormSubmit);
+                DOMElements.dealForm.addEventListener('submit', handleDealFormSubmit);
+                DOMElements.interactionForm.addEventListener('submit', handleInteractionFormSubmit);
+                DOMElements.confirmDeleteBtn.addEventListener('click', confirmDelete);
+                DOMElements.confirmImportBtn.addEventListener('click', confirmImport);
+                DOMElements.generateReportBtn.addEventListener('click', generateReport);
+                DOMElements.printReportBtn.addEventListener('click', () => window.print());
+                DOMElements.backToAppBtn.addEventListener('click', () => switchView('reports'));
+                document.body.addEventListener('click', handleBodyClick);
+                DOMElements.searchInput.addEventListener('input', applyFiltersAndSort);
+                DOMElements.typeFilter.addEventListener('change', applyFiltersAndSort);
+                DOMElements.countryFilter.addEventListener('change', applyFiltersAndSort);
+                DOMElements.exportCsvBtn.addEventListener('click', exportToCsv);
+                DOMElements.exportJsonBtn.addEventListener('click', exportClientsToJson);
+                DOMElements.exportBackupBtn.addEventListener('click', exportBackup);
+                DOMElements.importBackupInput.addEventListener('change', importBackup);
+                DOMElements.importClientsCsvInput.addEventListener('change', importFromCsv);
+                DOMElements.importClientsJsonInput.addEventListener('change', importClientsFromJson);
+                document.querySelector('#clientsView thead').addEventListener('click', handleSortClick);
+                DOMElements.createFollowUpTask.addEventListener('change', (e) => DOMElements.followUpTaskFields.classList.toggle('hidden', !e.target.checked));
+                document.getElementById('clientType').addEventListener('change', (e) => document.getElementById('clientStageWrapper').classList.toggle('hidden', e.target.value !== 'Potential'));
+                
+                document.getElementById('dealStatus').addEventListener('change', (e) => {
+                    document.getElementById('productDetailsFields').classList.toggle('hidden', e.target.value !== 'Won');
+                });
+                document.getElementById('dealModal').addEventListener('input', (e) => {
+                    if (e.target.closest('.calculation-input') || e.target.id === 'dealCurrency' || e.target.id === 'advancePaymentValue' || e.target.id === 'advancePaymentPercentage') {
+                        calculateTotalValue();
+                    }
+                });
+                document.getElementById('addProductBtn').addEventListener('click', () => createProductEntry());
+                 document.getElementById('productsContainer').addEventListener('click', (e) => {
+                    const removeBtn = e.target.closest('.remove-product-btn');
+                    if (removeBtn) {
+                        removeBtn.closest('.product-entry').remove();
+                        calculateTotalValue();
+                    }
+                });
+                document.getElementById('addContactBtn').addEventListener('click', () => createContactEntry());
+                document.getElementById('contactsContainer').addEventListener('click', (e) => {
+                    const removeBtn = e.target.closest('.remove-contact-btn');
+                    if (removeBtn) {
+                        removeBtn.closest('.contact-entry').remove();
+                    }
+                });
+                 DOMElements.notificationClose.addEventListener('click', () => {
+                    const modal = DOMElements.notificationModal;
+                    modal.classList.add('translate-x-full');
+                    setTimeout(() => modal.classList.add('hidden'), 300);
+                });
+
+                // Set default report dates to current month
+                const today = new Date();
+                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                DOMElements.reportStartDate.value = firstDay.toISOString().split('T')[0];
+                DOMElements.reportEndDate.value = lastDay.toISOString().split('T')[0];
+            }
+
+            function handleBodyClick(e) {
+                if (e.target.closest('.close-modal-btn') || e.target.closest('.cancel-btn')) {
+                    closeModal(e.target.closest('.modal-backdrop, .fixed'));
+                }
+                if (e.target.matches('.modal-backdrop')) {
+                    closeModal(e.target);
+                }
+                const viewBtn = e.target.closest('.view-btn'); if (viewBtn) showClientDetails(viewBtn.dataset.id);
+                const editBtn = e.target.closest('.edit-btn'); if (editBtn) openEditClientModal(editBtn.dataset.id);
+                const deleteBtn = e.target.closest('.delete-btn'); if (deleteBtn) openDeleteModal(deleteBtn.dataset.id);
+                const doneBtn = e.target.closest('.done-btn'); if (doneBtn) handleDoneClick(doneBtn.dataset.id);
+                const dealCard = e.target.closest('.kanban-column > div'); if(dealCard) openEditDealModal(dealCard.dataset.clientId, dealCard.dataset.dealId);
+                const dealListItem = e.target.closest('#pendingDealsDashboardList li, #lostDealsDashboardList li');
+                if (dealListItem?.dataset.clientId) openEditDealModal(dealListItem.dataset.clientId, dealListItem.dataset.dealId);
+                const manageShipmentsBtn = e.target.closest('.manage-shipments-btn'); if (manageShipmentsBtn) openShipmentModal(manageShipmentsBtn.dataset.dealId, manageShipmentsBtn.dataset.clientId);
+            }
+            
+            // --- Modal Handlers ---
+            function openAddClientModal() {
+                DOMElements.clientForm.reset();
+                document.getElementById('contactsContainer').innerHTML = '';
+                createContactEntry(); // Add one empty contact form by default
+                DOMElements.modalTitle.textContent = 'Add New Client';
+                document.getElementById('clientId').value = '';
+                document.getElementById('clientStageWrapper').classList.add('hidden');
+                openModal(DOMElements.clientModal);
+            }
+
+            function openEditClientModal(id) {
+                const client = clients.find(c => c.id == id);
+                if (client) {
+                    DOMElements.modalTitle.textContent = 'Edit Client Details';
+                    document.getElementById('clientId').value = client.id;
+                    document.getElementById('companyName').value = client.companyName;
+                    document.getElementById('country').value = client.country;
+                    document.getElementById('website').value = client.website;
+                    document.getElementById('clientType').value = client.type;
+                    const stageWrapper = document.getElementById('clientStageWrapper');
+                    stageWrapper.classList.toggle('hidden', client.type !== 'Potential');
+                    if (client.type === 'Potential') document.getElementById('clientStage').value = client.stage || 'New Lead';
+                    document.getElementById('notes').value = client.notes;
+
+                    const contactsContainer = document.getElementById('contactsContainer');
+                    contactsContainer.innerHTML = '';
+                    if (client.contacts && client.contacts.length > 0) {
+                        client.contacts.forEach(contact => createContactEntry(contact));
+                    } else {
+                        createContactEntry(); // Add an empty one if none exist
+                    }
+
+                    openModal(DOMElements.clientModal);
+                }
+            }
+
+            function openDeleteModal(id) {
+                DOMElements.deleteModal.dataset.clientIdToDelete = id;
+                openModal(DOMElements.deleteModal);
+            }
+
+            function openAddDealModal(clientId) {
+                DOMElements.dealForm.reset();
+                document.getElementById('dealClientId').value = clientId;
+                document.getElementById('dealId').value = '';
+                document.getElementById('dealCurrency').value = 'USD';
+                DOMElements.dealModalTitle.textContent = 'Add New Deal';
+                document.getElementById('productDetailsFields').classList.add('hidden');
+                document.getElementById('productsContainer').innerHTML = '';
+                createProductEntry();
+                calculateTotalValue();
+                openModal(DOMElements.dealModal);
+            }
+
+            function openEditDealModal(clientId, dealId){
+                const client = clients.find(c => c.id == clientId);
+                const deal = client?.deals?.find(d => d.dealId == dealId);
+                if(deal){
+                    DOMElements.dealForm.reset();
+                    document.getElementById('productsContainer').innerHTML = '';
+
+                    DOMElements.dealModalTitle.textContent = 'Edit Deal';
+                    document.getElementById('dealClientId').value = clientId;
+                    document.getElementById('dealId').value = dealId;
+                    document.getElementById('dealName').value = deal.name;
+                    document.getElementById('dealAmount').value = deal.amount;
+                    document.getElementById('dealCurrency').value = deal.currency || 'USD';
+                    document.getElementById('dealStatus').value = deal.status;
+                    document.getElementById('dealCloseDate').value = deal.closeDate;
+                    
+                    const productFields = document.getElementById('productDetailsFields');
+                    productFields.classList.toggle('hidden', deal.status !== 'Won');
+
+                    if (deal.status === 'Won' && deal.productDetails) {
+                        const details = deal.productDetails;
+                        document.getElementById('dealPaymentTerms').value = details.paymentTerms || '';
+                        document.getElementById('advancePaymentValue').value = details.advancePaymentValue || '';
+                        document.getElementById('advancePaymentPercentage').value = details.advancePaymentPercentage || '';
+                        
+                        if (details.products && Array.isArray(details.products) && details.products.length > 0) {
+                            details.products.forEach(product => createProductEntry(product));
+                        } else {
+                           createProductEntry();
+                        }
+                    } else {
+                        createProductEntry();
+                    }
+                    calculateTotalValue();
+                    openModal(DOMElements.dealModal);
+                }
+            }
+            
+            function openInteractionModal(clientId) {
+                DOMElements.interactionForm.reset();
+                document.getElementById('interactionClientId').value = clientId;
+                DOMElements.createFollowUpTask.checked = false;
+                DOMElements.followUpTaskFields.classList.add('hidden');
+                document.getElementById('interactionDate').value = new Date().toISOString().slice(0, 16);
+                openModal(DOMElements.interactionModal);
+            }
+
+            function showClientDetails(id) {
+                const client = clients.find(c => c.id == id);
+                if (!client) return;
+                DOMElements.viewModalTitle.textContent = `Details for ${client.companyName}`;
+                
+                let contactsHTML = '<p class="text-gray-500">No contacts recorded.</p>';
+                if (client.contacts && client.contacts.length > 0) {
+                    contactsHTML = client.contacts.map(contact => `
+                        <div class="p-3 border rounded-lg bg-gray-50 mb-3">
+                            <p class="font-bold text-base">${contact.name} <span class="text-sm font-normal text-gray-600">- ${contact.title || 'N/A'}</span></p>
+                             <p class="text-xs text-gray-500">${contact.department || ''}</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 mt-2 text-xs">
+                                <p><strong class="w-auto mr-2">Phone:</strong> ${contact.phone || 'N/A'}</p>
+                                <p><strong class="w-auto mr-2">Mobile:</strong> ${contact.mobile || 'N/A'}</p>
+                                <p><strong class="w-auto mr-2">Fax:</strong> ${contact.fax || 'N/A'}</p>
+                                <p><strong class="w-auto mr-2">Email:</strong> ${contact.email || 'N/A'}</p>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                const interactionsHTML = (client.interactionHistory || []).length > 0 ? [...client.interactionHistory].sort((a,b) => new Date(b.date) - new Date(a.date)).map(i => `
+                    <div class="p-2 border-l-4 border-blue-200 bg-gray-50 mb-2">
+                        <p class="font-bold">${i.type} - <span class="text-sm font-normal">${formatDateTime(i.date)}</span></p>
+                        <p class="text-gray-700">${i.notes}</p>
+                    </div>`).join('') : '<p class="text-gray-500">No interactions recorded.</p>';
+                const dealsHTML = (client.deals || []).length > 0 ? client.deals.map(d => `
+                       <div class="p-2 border-l-4 border-green-200 bg-gray-50 mb-2">
+                            <p class="font-bold">${d.name} (${d.status})</p>
+                            <p class="text-gray-700">Value: ${formatCurrency(d.amount, d.currency)} | Close Date: ${formatDate(d.closeDate)}</p>
+                        </div>`).join('') : '<p class="text-gray-500">No deals recorded.</p>';
+                
+                let stageHTML = client.type === 'Potential' ? `<p><strong>Lead Stage:</strong> ${client.stage || 'N/A'}</p>` : '';
+                
+                DOMElements.viewModalContent.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <p><strong>Country:</strong> ${client.country || 'N/A'}</p>
+                            <p><strong>Website:</strong> ${client.website ? `<a href="${client.website}" target="_blank" class="text-blue-600 hover:underline">${client.website}</a>` : 'N/A'}</p>
+                            ${stageHTML}
+                        </div>
+                    </div>
+                     <div class="mb-6">
+                        <h4 class="font-bold text-md mb-2 border-b pb-1">Contacts</h4>
+                        ${contactsHTML}
+                    </div>
+                    <div class="flex flex-wrap justify-start items-center mb-4 gap-3">
+                        <button class="add-interaction-btn text-white bg-blue-500 hover:bg-blue-600 text-sm px-3 py-1.5 rounded-md flex items-center gap-1" data-id="${client.id}"><i data-lucide="message-square-plus" class="w-4 h-4"></i>Add Interaction</button>
+                        <button class="add-deal-btn text-white bg-green-500 hover:bg-green-600 text-sm px-3 py-1.5 rounded-md flex items-center gap-1" data-id="${client.id}"><i data-lucide="dollar-sign" class="w-4 h-4"></i>Add Deal</button>
+                        <button class="edit-client-from-view-btn text-white bg-yellow-500 hover:bg-yellow-600 text-sm px-3 py-1.5 rounded-md flex items-center gap-1" data-id="${client.id}"><i data-lucide="edit" class="w-4 h-4"></i>Edit Client</button>
+                    </div>
+                    <div><h4 class="font-bold text-md mb-2 border-b pb-1">Interaction History</h4>${interactionsHTML}</div>
+                    <div class="mt-4"><h4 class="font-bold text-md mb-2 border-b pb-1">Sales Pipeline</h4>${dealsHTML}</div>`;
+                lucide.createIcons();
+                openModal(DOMElements.viewModal);
+                document.querySelector('.add-interaction-btn')?.addEventListener('click', (e) => openInteractionModal(e.currentTarget.dataset.id));
+                document.querySelector('.add-deal-btn')?.addEventListener('click', (e) => openAddDealModal(e.currentTarget.dataset.id));
+                document.querySelector('.edit-client-from-view-btn')?.addEventListener('click', (e) => {
+                    closeModal(DOMElements.viewModal);
+                    openEditClientModal(e.currentTarget.dataset.id);
+                });
+            }
+
+            function attachShipmentModalListeners(deal, client) {
+                const clientId = client.id;
+                const dealId = deal.dealId;
+
+                const confirmBtn = document.getElementById('confirmAdvancePaymentBtn');
+                if (confirmBtn) {
+                    confirmBtn.addEventListener('click', () => {
+                         const clientIndex = clients.findIndex(c => c.id === clientId);
+                         if(clientIndex > -1) {
+                            const dealIndex = clients[clientIndex].deals.findIndex(d => d.dealId == dealId);
+                            if(dealIndex > -1) {
+                                clients[clientIndex].deals[dealIndex].productDetails.advancePaymentConfirmed = true;
+                                saveClientsToLocalStorage();
+                                renderShipmentModalContent(clients[clientIndex].deals[dealIndex], clients[clientIndex]);
+                                renderAll();
+                            }
+                         }
+                    });
+                }
+
+                const addShipmentForm = document.getElementById('addShipmentForm');
+                if(addShipmentForm) {
+                    addShipmentForm.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        
+                        const shippedProducts = [];
+                        let shipmentValue = 0;
+
+                        document.querySelectorAll('#addShipmentForm .shipment-product-entry').forEach(entry => {
+                            const productIndex = parseInt(entry.dataset.productIndex, 10);
+                            const dealProduct = deal.productDetails.products[productIndex];
+                            const shippedPackageCount = parseInt(entry.querySelector('.shipped-package-count').value) || 0;
+                            const shippedContainerCount = parseInt(entry.querySelector('.shipped-container-count').value) || 0;
+                            
+                            if(shippedPackageCount > 0) {
+                                shippedProducts.push({
+                                    productIndex: productIndex, description: dealProduct.description, packageCount: shippedPackageCount,
+                                    netWeightPerPackage: dealProduct.netWeightPerPackage, packageType: dealProduct.packageType, pricePerKg: dealProduct.pricePerKg,
+                                    containerCount: shippedContainerCount
+                                });
+                                shipmentValue += shippedPackageCount * dealProduct.netWeightPerPackage * dealProduct.pricePerKg;
+                            }
+                        });
+
+                        if (shippedProducts.length === 0) {
+                            showNotification("Please enter a quantity for at least one product."); return;
+                        }
+
+                        const newShipment = {
+                            shipmentId: 'SHP-' + Date.now(),
+                            poNumber: addShipmentForm.querySelector('#shipmentPoNumber').value,
+                            status: 'Processing', docStatus: 'Not Prepared', products: shippedProducts,
+                            invoice: { 
+                                number: addShipmentForm.querySelector('#shipmentInvoiceNumber').value, amount: shipmentValue, status: 'Unpaid', 
+                                currency: deal.currency, masterBL: addShipmentForm.querySelector('#shipmentMasterBL').value,
+                                houseBL: addShipmentForm.querySelector('#shipmentHouseBL').value, shippingLine: addShipmentForm.querySelector('#shipmentShippingLine').value
+                            },
+                            payments: []
+                        };
+                        
+                        const clientIndex = clients.findIndex(c => c.id === clientId);
+                        if(clientIndex > -1) {
+                           const dealIndex = clients[clientIndex].deals.findIndex(d => d.dealId == dealId);
+                           if(dealIndex > -1) {
+                               clients[clientIndex].deals[dealIndex].shipments.push(newShipment);
+                               saveClientsToLocalStorage();
+                               renderShipmentModalContent(clients[clientIndex].deals[dealIndex], clients[clientIndex]);
+                               renderAll();
+                           }
+                        }
+                    });
+                }
+
+                DOMElements.shipmentModalContent.addEventListener('click', (e) => {
+                    const removeBtn = e.target.closest('.remove-shipment-btn');
+                    if (removeBtn) {
+                        const shipmentId = removeBtn.dataset.shipmentId;
+                        const clientIndex = clients.findIndex(c => c.id === clientId);
+                        if(clientIndex > -1) {
+                           const dealIndex = clients[clientIndex].deals.findIndex(d => d.dealId == dealId);
+                           if(dealIndex > -1) {
+                               clients[clientIndex].deals[dealIndex].shipments = clients[clientIndex].deals[dealIndex].shipments.filter(s => s.shipmentId != shipmentId);
+                               saveClientsToLocalStorage();
+                               renderShipmentModalContent(clients[clientIndex].deals[dealIndex], clients[clientIndex]);
+                               renderAll();
+                           }
+                        }
+                    }
+                     const addPaymentBtn = e.target.closest('.add-payment-btn');
+                    if(addPaymentBtn) {
+                        const shipmentId = addPaymentBtn.dataset.shipmentId;
+                        const paymentInput = document.getElementById(`paymentAmount-${shipmentId}`);
+                        const amount = parseFloat(paymentInput.value);
+
+                        if(amount > 0) {
+                            const newPayment = { amount: amount, date: new Date().toISOString() };
+                            const clientIndex = clients.findIndex(c => c.id === clientId);
+                            if(clientIndex > -1) {
+                               const dealIndex = clients[clientIndex].deals.findIndex(d => d.dealId == dealId);
+                               if(dealIndex > -1) {
+                                   const shipmentIndex = clients[clientIndex].deals[dealIndex].shipments.findIndex(s => s.shipmentId == shipmentId);
+                                   if(shipmentIndex > -1) {
+                                       clients[clientIndex].deals[dealIndex].shipments[shipmentIndex].payments.push(newPayment);
+                                       saveClientsToLocalStorage();
+                                       renderShipmentModalContent(clients[clientIndex].deals[dealIndex], clients[clientIndex]);
+                                       renderAll();
+                                       paymentInput.value = '';
+                                   }
+                               }
+                            }
+                        }
+                    }
+                });
+
+                DOMElements.shipmentModalContent.addEventListener('change', (e) => {
+                    const statusSelect = e.target.closest('.shipment-status-select, .doc-status-select');
+                    if(statusSelect) {
+                        const shipmentId = statusSelect.dataset.shipmentId;
+                        const isDocStatus = statusSelect.classList.contains('doc-status-select');
+                        
+                        const clientIndex = clients.findIndex(c => c.id === clientId);
+                        if(clientIndex > -1) {
+                           const dealIndex = clients[clientIndex].deals.findIndex(d => d.dealId == dealId);
+                           if(dealIndex > -1) {
+                               const shipmentIndex = clients[clientIndex].deals[dealIndex].shipments.findIndex(s => s.shipmentId == shipmentId);
+                               if(shipmentIndex > -1) {
+                                   if(isDocStatus){
+                                       clients[clientIndex].deals[dealIndex].shipments[shipmentIndex].docStatus = statusSelect.value;
+                                   } else {
+                                       clients[clientIndex].deals[dealIndex].shipments[shipmentIndex].status = statusSelect.value;
+                                   }
+                                   saveClientsToLocalStorage();
+                                   renderAllShipmentsView();
+                               }
+                           }
+                        }
+                    }
+                });
+            }
+
+            function renderShipmentModalContent(deal, client){
+                if (!deal || !client) return;
+                DOMElements.shipmentModalTitle.textContent = `Manage Shipments for Deal: ${deal.name}`;
+                
+                const shippedQuantities = (deal.shipments || []).flatMap(s => s.products || []).reduce((acc, p) => {
+                    acc[p.productIndex] = {
+                        packages: (acc[p.productIndex]?.packages || 0) + p.packageCount,
+                        containers: (acc[p.productIndex]?.containers || 0) + p.containerCount,
+                        weight: (acc[p.productIndex]?.weight || 0) + (p.packageCount * p.netWeightPerPackage)
+                    };
+                    return acc;
+                }, {});
+
+                const advancePayment = (deal.productDetails?.advancePaymentConfirmed) ? (deal.productDetails?.advancePaymentValue || 0) : 0;
+                const invoicePayments = (deal.shipments || []).flatMap(s => s.payments || []).reduce((sum, p) => sum + p.amount, 0);
+                const remainingValue = deal.amount - advancePayment - invoicePayments;
+                
+                const advancePaymentValue = deal.productDetails?.advancePaymentValue || 0;
+                const isAdvancePaid = deal.productDetails?.advancePaymentConfirmed || false;
+                let advancePaymentHTML = `
+                    <div class="bg-blue-100 p-3 rounded-lg text-center flex flex-col justify-between">
+                        <div>
+                            <p class="text-blue-800">Advance Payment</p>
+                            <p class="font-bold text-lg text-blue-800">${formatCurrency(advancePaymentValue, deal.currency)}</p>
+                        </div>`;
+                if (isAdvancePaid) {
+                    advancePaymentHTML += `<span class="mt-2 text-xs font-semibold bg-green-200 text-green-800 px-2 py-1 rounded-full">Paid</span>`;
+                } else if (advancePaymentValue > 0) {
+                    advancePaymentHTML += `<button id="confirmAdvancePaymentBtn" class="mt-2 text-xs font-bold bg-green-500 text-white px-3 py-1.5 rounded hover:bg-green-600">Confirm Receipt</button>`;
+                }
+                advancePaymentHTML += `</div>`;
+
+                const quantitiesSummaryHTML = `
+                    <div class="p-4 border rounded-lg mb-6 bg-white shadow-sm">
+                         <h4 class="font-bold text-xl mb-4">Contract Quantities Summary</h4>
+                         <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-center">
+                                <thead class="bg-gray-100">
+                                    <tr>
+                                        <th class="p-2 font-semibold text-left">Product</th>
+                                        <th class="p-2 font-semibold">Total Weight (kg)</th>
+                                        <th class="p-2 font-semibold text-green-600">Shipped Weight</th>
+                                        <th class="p-2 font-semibold text-red-600">Remaining Weight</th>
+                                        <th class="p-2 font-semibold">Total Containers</th>
+                                        <th class="p-2 font-semibold text-green-600">Shipped Containers</th>
+                                        <th class="p-2 font-semibold text-red-600">Remaining Containers</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${(deal.productDetails?.products || []).map((p, index) => {
+                                        const totalWeight = p.packageCount * p.netWeightPerPackage;
+                                        const shippedWeight = shippedQuantities[index]?.weight || 0;
+                                        const remainingWeight = totalWeight - shippedWeight;
+                                        const totalContainers = p.containerCount || 0;
+                                        const shippedContainers = shippedQuantities[index]?.containers || 0;
+                                        const remainingContainers = totalContainers - shippedContainers;
+                                        return `
+                                        <tr class="border-b">
+                                            <td class="p-2 text-left">${p.description}</td>
+                                            <td class="p-2">${totalWeight.toFixed(2)}</td>
+                                            <td class="p-2 text-green-600">${shippedWeight.toFixed(2)}</td>
+                                            <td class="p-2 text-red-600 font-bold">${remainingWeight.toFixed(2)}</td>
+                                            <td class="p-2">${totalContainers}</td>
+                                            <td class="p-2 text-green-600">${shippedContainers}</td>
+                                            <td class="p-2 text-red-600 font-bold">${remainingContainers}</td>
+                                        </tr>`;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                         </div>
+                    </div>`;
+
+                const addShipmentFormHTML = `
+                    <div class="p-4 border rounded-lg mb-6 bg-white shadow-sm">
+                        <h4 class="font-bold text-xl mb-4">Add New Shipment</h4>
+                        <form id="addShipmentForm" class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div><label class="block text-xs font-medium text-gray-600 mb-1">PO Number</label><input id="shipmentPoNumber" type="text" class="w-full p-1.5 border rounded-md text-sm" required></div>
+                                <div><label class="block text-xs font-medium text-gray-600 mb-1">Invoice Number</label><input id="shipmentInvoiceNumber" type="text" class="w-full p-1.5 border rounded-md text-sm"></div>
+                                <div><label class="block text-xs font-medium text-gray-600 mb-1">Shipping Line</label><input id="shipmentShippingLine" type="text" class="w-full p-1.5 border rounded-md text-sm"></div>
+                                <div><label class="block text-xs font-medium text-gray-600 mb-1">Master B/L</label><input id="shipmentMasterBL" type="text" class="w-full p-1.5 border rounded-md text-sm"></div>
+                                <div><label class="block text-xs font-medium text-gray-600 mb-1">House B/L</label><input id="shipmentHouseBL" type="text" class="w-full p-1.5 border rounded-md text-sm"></div>
+                            </div>
+                            <div class="pt-4 border-t">
+                                <h5 class="font-semibold text-md mb-2">Products to Ship</h5>
+                                <div class="space-y-3">
+                                ${ (deal.productDetails?.products || []).map((p, index) => {
+                                    const totalPackages = p.packageCount;
+                                    const shippedPackages = shippedQuantities[index]?.packages || 0;
+                                    const remainingPackages = totalPackages - shippedPackages;
+                                    return `
+                                    <div class="shipment-product-entry grid grid-cols-12 gap-x-3 items-end p-2 bg-gray-50 rounded" data-product-index="${index}">
+                                        <div class="col-span-5"><p class="text-sm font-medium">${p.description}</p><p class="text-xs text-gray-500">Remaining: ${remainingPackages} / ${totalPackages} packages</p></div>
+                                        <div class="col-span-3"><label class="block text-xs font-medium text-gray-600 mb-1">Quantity to Ship (Packages)</label><input type="number" class="shipped-package-count w-full p-1.5 border rounded-md text-sm" max="${remainingPackages}" placeholder="Count"></div>
+                                        <div class="col-span-2"><label class="block text-xs font-medium text-gray-600 mb-1">Containers</label><input type="number" class="shipped-container-count w-full p-1.5 border rounded-md text-sm" placeholder="Count"></div>
+                                        <div class="col-span-2"><p class="text-sm">${p.packageType || ''}</p></div>
+                                    </div>`;
+                                }).join('')}
+                                </div>
+                            </div>
+                            <div class="flex justify-end pt-4">
+                                <button type="submit" class="bg-blue-600 text-white text-sm font-bold py-2 px-4 rounded flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i>Save Shipment</button>
+                            </div>
+                        </form>
+                    </div>`;
+
+                const shipmentsHTML = (deal.shipments || []).map((shipment, index) => {
+                    const productsInShipmentHTML = (shipment.products || []).map(p => `<li class="flex justify-between text-xs py-1 border-b"><span>${p.description}</span><span class="font-semibold">${p.packageCount} packages | ${p.containerCount || 0} containers</span></li>`).join('');
+                    const shipmentStatusOptions = ['Processing', 'In Transit', 'At Port', 'Delivered'].map(s => `<option value="${s}" ${shipment.status === s ? 'selected' : ''}>${s}</option>`).join('');
+                    const docStatusOptions = ['Not Prepared', 'Ready', 'Sent to Client', 'Received'].map(s => `<option value="${s}" ${shipment.docStatus === s ? 'selected' : ''}>${s}</option>`).join('');
+
+                    const totalPaidForInvoice = (shipment.payments || []).reduce((sum, p) => sum + p.amount, 0);
+                    const outstandingOnInvoice = (shipment.invoice?.amount || 0) - totalPaidForInvoice;
+                    const paymentsHTML = (shipment.payments || []).map(p => `<li class="flex justify-between text-xs"><span>${formatDate(p.date)}</span><span>${formatCurrency(p.amount, deal.currency)}</span></li>`).join('');
+
+                    return `
+                    <div class="shipment-card p-4 border rounded-lg mb-4 bg-gray-50" data-shipment-id="${shipment.shipmentId}">
+                        <div class="flex justify-between items-center mb-4">
+                            <h5 class="font-bold text-md">Shipment #${index + 1} (PO: ${shipment.poNumber || 'N/A'}) - ${formatCurrency(shipment.invoice?.amount || 0, deal.currency)}</h5>
+                            <button type="button" class="remove-shipment-btn text-red-500 hover:text-red-700" data-shipment-id="${shipment.shipmentId}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div>
+                                <h6 class="font-bold text-sm mb-2">Shipment Tracking</h6>
+                                <div class="mb-2"><label class="block text-xs font-medium">Shipment Status</label><select class="shipment-status-select w-full p-1 border rounded" data-shipment-id="${shipment.shipmentId}">${shipmentStatusOptions}</select></div>
+                                <div><label class="block text-xs font-medium">Document Status</label><select class="doc-status-select w-full p-1 border rounded" data-shipment-id="${shipment.shipmentId}">${docStatusOptions}</select></div>
+                            </div>
+                             <div>
+                                <h6 class="font-bold text-sm mb-2">Invoice Details</h6>
+                                 <p class="text-xs"><strong>Shipping Line:</strong> ${shipment.invoice?.shippingLine || 'N/A'}</p>
+                                 <p class="text-xs"><strong>Master B/L:</strong> ${shipment.invoice?.masterBL || 'N/A'}</p>
+                            </div>
+                             <div>
+                                <h6 class="font-bold text-sm mb-2">Shipped Products</h6>
+                                <ul class="space-y-1">${productsInShipmentHTML}</ul>
+                            </div>
+                             <div class="bg-white p-3 rounded-lg border">
+                                 <h6 class="font-bold text-sm mb-2">Payments</h6>
+                                <ul class="text-sm space-y-1 mb-2 max-h-24 overflow-y-auto">${paymentsHTML || '<li class="text-xs text-gray-400">No payments</li>'}</ul>
+                                <div class="flex gap-2"><input type="number" id="paymentAmount-${shipment.shipmentId}" class="w-2/3 p-1.5 border rounded-md text-sm" placeholder="Add Payment"><button class="add-payment-btn w-1/3 bg-green-500 text-white text-xs font-bold rounded" data-shipment-id="${shipment.shipmentId}">Add</button></div>
+                                <p class="text-xs text-right mt-2 font-semibold">Invoice Outstanding: <span class="text-red-600">${formatCurrency(outstandingOnInvoice, deal.currency)}</span></p>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+                
+                DOMElements.shipmentModalContent.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm mb-6">
+                        <div class="bg-gray-100 p-3 rounded-lg text-center"><p class="text-gray-500">Contract Value</p><p class="font-bold text-lg">${formatCurrency(deal.amount, deal.currency)}</p></div>
+                        ${advancePaymentHTML}
+                        <div class="bg-green-100 p-3 rounded-lg text-center"><p class="text-green-800">Invoice Payments</p><p class="font-bold text-lg text-green-800">${formatCurrency(invoicePayments, deal.currency)}</p></div>
+                        <div class="bg-red-100 p-3 rounded-lg text-center"><p class="text-red-800">Remaining on Contract</p><p class="font-bold text-lg text-red-800">${formatCurrency(remainingValue, deal.currency)}</p></div>
+                    </div>
+                    ${quantitiesSummaryHTML}
+                    ${addShipmentFormHTML}
+                    <div>
+                        <h4 class="font-bold text-xl mt-8 mb-2 border-t pt-4">Registered Shipments</h4>
+                        <div id="shipmentsList">${shipmentsHTML || '<p class="text-gray-500 p-4 text-center">No shipments added yet.</p>'}</div>
+                    </div>`;
+                lucide.createIcons();
+                attachShipmentModalListeners(deal, client);
+            }
+
+            function openShipmentModal(dealId, clientId) {
+                const client = clients.find(c => c.id == clientId);
+                const deal = client?.deals?.find(d => d.dealId == dealId);
+                if (!deal) return;
+                renderShipmentModalContent(deal, client);
+                openModal(DOMElements.shipmentModal);
+            }
+
+            // --- Form Handlers (CRUD operations) ---
+            function handleClientFormSubmit(e) {
+                e.preventDefault();
+                const id = document.getElementById('clientId').value;
+
+                const contacts = [];
+                document.querySelectorAll('.contact-entry').forEach(entry => {
+                    const name = entry.querySelector('.contact-name').value;
+                    if (name) { // Only add contacts with a name
+                        contacts.push({
+                            name: name,
+                            title: entry.querySelector('.contact-title').value,
+                            department: entry.querySelector('.contact-department').value,
+                            phone: entry.querySelector('.contact-phone').value,
+                            mobile: entry.querySelector('.contact-mobile').value,
+                            fax: entry.querySelector('.contact-fax').value,
+                            email: entry.querySelector('.contact-email').value,
+                        });
+                    }
+                });
+                
+                if (contacts.length === 0) {
+                    showNotification('Please add at least one contact with a name.');
+                    return;
+                }
+
+                const clientData = {
+                    id: id || `client_${Date.now()}`,
+                    companyName: document.getElementById('companyName').value,
+                    country: document.getElementById('country').value, 
+                    website: document.getElementById('website').value,
+                    type: document.getElementById('clientType').value, 
+                    stage: document.getElementById('clientType').value === 'Potential' ? document.getElementById('clientStage').value : '',
+                    notes: document.getElementById('notes').value,
+                    contacts: contacts
+                };
+                
+                if (id) {
+                    const clientIndex = clients.findIndex(c => c.id === id);
+                    if(clientIndex > -1) {
+                       clients[clientIndex] = {...clients[clientIndex], ...clientData};
+                    }
+                } else {
+                    clients.push({ 
+                        ...clientData, 
+                        creationDate: new Date().toISOString(), // Add creation date for new clients
+                        interactionHistory: [], deals: [], followUpDate: '', nextAction: '' 
+                    });
+                }
+                saveClientsToLocalStorage();
+                renderAll();
+                closeModal(DOMElements.clientModal);
+            }
+            
+            function handleDealFormSubmit(e){
+                e.preventDefault();
+                calculateTotalValue(); 
+                const clientId = document.getElementById('dealClientId').value;
+                const dealId = document.getElementById('dealId').value;
+                const clientIndex = clients.findIndex(c => c.id == clientId);
+                if(clientIndex === -1) return;
+
+                const dealData = {
+                    name: document.getElementById('dealName').value, 
+                    amount: parseFloat(document.getElementById('dealAmount').value) || 0,
+                    currency: document.getElementById('dealCurrency').value, 
+                    status: document.getElementById('dealStatus').value,
+                    closeDate: document.getElementById('dealCloseDate').value,
+                };
+
+                if (dealData.status === 'Won') {
+                    const products = [];
+                    document.querySelectorAll('.product-entry').forEach(entry => {
+                        products.push({
+                            description: entry.querySelector('.product-description').value,
+                            netWeightPerPackage: parseFloat(entry.querySelector('.product-net-weight').value) || 0,
+                            packageCount: parseInt(entry.querySelector('.product-package-count').value) || 0,
+                            packageType: entry.querySelector('.product-package-type').value,
+                            pricePerKg: parseFloat(entry.querySelector('.product-price-per-kg').value) || 0,
+                            packagesPerContainer: parseInt(entry.querySelector('.product-packages-per-container').value) || 0,
+                            containerCount: parseInt(entry.querySelector('.product-container-count').value) || 0,
+                        });
+                    });
+
+                    dealData.productDetails = {
+                        products: products,
+                        paymentTerms: document.getElementById('dealPaymentTerms').value,
+                        advancePaymentValue: parseFloat(document.getElementById('advancePaymentValue').value) || 0,
+                        advancePaymentPercentage: parseFloat(document.getElementById('advancePaymentPercentage').value) || 0,
+                    };
+                }
+
+                if(dealId){
+                    const dealIndex = clients[clientIndex].deals.findIndex(d => d.dealId == dealId);
+                    if(dealIndex > -1) {
+                        const existingDeal = clients[clientIndex].deals[dealIndex];
+                        const existingDetails = existingDeal.productDetails || {};
+                        
+                        clients[clientIndex].deals[dealIndex] = {...existingDeal, ...dealData };
+                        
+                        if (clients[clientIndex].deals[dealIndex].productDetails) {
+                             clients[clientIndex].deals[dealIndex].productDetails = {
+                                ...existingDetails,
+                                ...clients[clientIndex].deals[dealIndex].productDetails
+                             };
+                        }
+                    }
+                } else {
+                    if (dealData.productDetails) {
+                        dealData.productDetails.advancePaymentConfirmed = false;
+                    }
+                    dealData.dealId = `deal_${Date.now()}`;
+                    dealData.shipments = [];
+                    clients[clientIndex].deals.push(dealData);
+                }
+
+                saveClientsToLocalStorage();
+                renderAll();
+                closeModal(DOMElements.dealModal);
+            }
+
+            function handleInteractionFormSubmit(e) {
+                e.preventDefault();
+                const clientId = document.getElementById('interactionClientId').value;
+                const clientIndex = clients.findIndex(c => c.id == clientId);
+                if (clientIndex === -1) return;
+
+                const newInteraction = {
+                    date: document.getElementById('interactionDate').value, type: document.getElementById('interactionType').value,
+                    notes: document.getElementById('interactionNotes').value,
+                };
+                
+                if (!clients[clientIndex].interactionHistory) {
+                    clients[clientIndex].interactionHistory = [];
+                }
+                clients[clientIndex].interactionHistory.push(newInteraction);
+
+                if (DOMElements.createFollowUpTask.checked) {
+                    clients[clientIndex].followUpDate = document.getElementById('followUpTaskDate').value;
+                    clients[clientIndex].nextAction = document.getElementById('followUpTaskNotes').value;
+                }
+                
+                saveClientsToLocalStorage();
+                renderAll();
+                closeModal(DOMElements.interactionModal);
+            }
+
+            function handleDoneClick(id) {
+                const clientIndex = clients.findIndex(c => c.id == id);
+                if (clientIndex > -1 && clients[clientIndex].followUpDate) {
+                    const newInteraction = { date: new Date().toISOString(), type: 'Task Completed', notes: clients[clientIndex].nextAction || 'Follow-up task marked as complete.' };
+                    if (!clients[clientIndex].interactionHistory) {
+                        clients[clientIndex].interactionHistory = [];
+                    }
+                    clients[clientIndex].interactionHistory.push(newInteraction);
+                    clients[clientIndex].nextAction = '';
+                    clients[clientIndex].followUpDate = '';
+                    saveClientsToLocalStorage();
+                    renderAll();
+                }
+            }
+
+            function confirmDelete() {
+                const id = DOMElements.deleteModal.dataset.clientIdToDelete;
+                if (id) {
+                    clients = clients.filter(c => c.id !== id);
+                    saveClientsToLocalStorage();
+                    renderAll();
+                    closeModal(DOMElements.deleteModal);
+                }
+            }
+
+            function confirmImport() {
+                if (!tempImportData) return;
+                try {
+                    const importedClients = JSON.parse(tempImportData);
+                    if (Array.isArray(importedClients)) {
+                        clients = importedClients; // Replace current data
+                        saveClientsToLocalStorage();
+                        renderAll();
+                        closeModal(DOMElements.importConfirmModal);
+                        showNotification('Data imported successfully!', 'Success', 'success');
+                    } else {
+                        showNotification('Invalid file format. Please import a valid JSON backup file.');
+                    }
+                } catch (error) {
+                    showNotification('Error reading or parsing file. It might be corrupted.');
+                    console.error("Import Error: ", error);
+                } finally {
+                    tempImportData = null; // Clear temp data
+                }
+            }
+
+            // --- Filtering and Sorting ---
+            function applyFiltersAndSort() {
+                const searchTerm = DOMElements.searchInput.value.toLowerCase();
+                const selectedType = DOMElements.typeFilter.value;
+                const selectedCountry = DOMElements.countryFilter.value;
+                let filteredClients = clients.filter(client => {
+                    const companyMatch = client.companyName && client.companyName.toLowerCase().includes(searchTerm);
+                    const contactMatch = client.contacts && client.contacts.some(c => c.name && c.name.toLowerCase().includes(searchTerm));
+                    const typeMatch = !selectedType || client.type === selectedType;
+                    const countryMatch = !selectedCountry || (client.country || '') === selectedCountry;
+                    return (companyMatch || contactMatch) && typeMatch && countryMatch;
+                });
+                if(currentSortKey) {
+                     filteredClients.sort((a, b) => {
+                        let valA = a[currentSortKey] ? a[currentSortKey].toString().toLowerCase() : '';
+                        let valB = b[currentSortKey] ? b[currentSortKey].toString().toLowerCase() : '';
+                        if (currentSortKey === 'followUpDate') { if (!valA) return 1; if (!valB) return -1; }
+                        if (valA < valB) return currentSortDir === 'asc' ? -1 : 1;
+                        if (valA > valB) return currentSortDir === 'asc' ? 1 : -1;
+                        return 0;
+                    });
+                }
+                renderClients(filteredClients);
+            }
+            
+            function handleSortClick(e) {
+                const header = e.target.closest('.sortable');
+                if (!header) return;
+                const sortKey = header.dataset.sortKey;
+                currentSortDir = (currentSortKey === sortKey && currentSortDir === 'asc') ? 'desc' : 'asc';
+                currentSortKey = sortKey;
+                document.querySelectorAll('.sortable').forEach(th => th.removeAttribute('data-sort-dir'));
+                header.setAttribute('data-sort-dir', currentSortDir);
+                applyFiltersAndSort();
+            }
+
+             // --- Data Import/Export ---
+            function exportBackup() {
+                const dataStr = JSON.stringify(clients, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = 'crm_data_backup.json';
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            function importBackup(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        tempImportData = e.target.result;
+                        openModal(DOMElements.importConfirmModal);
+                    };
+                    reader.readAsText(file);
+                }
+                event.target.value = ''; // Reset input
+            }
+
+            function exportClientsToJson() {
+                const clientsOnly = clients.map(({ deals, interactionHistory, ...client }) => client);
+                const dataStr = JSON.stringify(clientsOnly, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'clients_export.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            function importClientsFromJson(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const importedClients = JSON.parse(e.target.result);
+                        if (!Array.isArray(importedClients)) {
+                            showNotification('Invalid JSON file. The file must contain a list (array) of clients.');
+                            return;
+                        }
+
+                        const newClients = importedClients.map((c, i) => ({
+                            id: `client_${Date.now()}_${i}`,
+                            companyName: c.companyName || 'N/A',
+                            contacts: c.contacts || [{name: 'N/A', title: '', department: '', phone: '', mobile: '', fax: '', email: ''}],
+                            country: c.country || '',
+                            website: c.website || '',
+                            type: c.type || 'Potential',
+                            stage: c.stage || '',
+                            notes: c.notes || '',
+                            creationDate: new Date().toISOString(),
+                            interactionHistory: [],
+                            deals: [],
+                            followUpDate: '',
+                            nextAction: ''
+                        }));
+                        
+                        clients.push(...newClients);
+                        saveClientsToLocalStorage();
+                        renderAll();
+                        showNotification(`${newClients.length} clients imported successfully!`, 'Success', 'success');
+
+                    } catch (error) {
+                        showNotification('Error reading or parsing JSON file.');
+                        console.error("JSON Import Error: ", error);
+                    }
+                };
+                reader.readAsText(file);
+                event.target.value = '';
+            }
+            
+            function importFromCsv(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const csv = e.target.result;
+                        const lines = csv.split(/\r\n|\n/);
+                        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+                        
+                        const newClients = [];
+                        for (let i = 1; i < lines.length; i++) {
+                            if (!lines[i]) continue;
+                            
+                            const values = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
+                            const unquote = (val) => val && val.startsWith('"') && val.endsWith('"') ? val.substring(1, val.length - 1).replace(/""/g, '"') : val;
+
+                            const clientData = {};
+                            headers.forEach((header, index) => {
+                                clientData[header] = unquote(values[index]) || '';
+                            });
+
+                            const client = {
+                                id: `client_${Date.now()}_${i}`,
+                                companyName: clientData['Company Name'] || clientData['Contact Name'],
+                                contacts: [{
+                                    name: clientData['Contact Name'] || 'N/A',
+                                    title: clientData['Contact Title'] || '',
+                                    department: clientData['Contact Department'] || '',
+                                    phone: clientData['Contact Phone'] || '',
+                                    mobile: clientData['Contact Mobile'] || '',
+                                    fax: clientData['Contact Fax'] || '',
+                                    email: clientData['Contact Email'] || ''
+                                }],
+                                country: clientData.Country || '',
+                                type: clientData.Type || 'Potential',
+                                stage: clientData.Stage || '',
+                                nextAction: clientData['Next Task'] || '',
+                                followUpDate: clientData['Task Date'] || '',
+                                creationDate: new Date().toISOString(),
+                                interactionHistory: [],
+                                deals: []
+                            };
+                            newClients.push(client);
+                        }
+                        
+                        // Group contacts by company
+                        const clientMap = newClients.reduce((acc, client) => {
+                            if (!acc[client.companyName]) {
+                                acc[client.companyName] = client;
+                            } else {
+                                acc[client.companyName].contacts.push(...client.contacts);
+                            }
+                            return acc;
+                        }, {});
+
+                        const finalNewClients = Object.values(clientMap);
+                        
+                        clients.push(...finalNewClients);
+                        saveClientsToLocalStorage();
+                        renderAll();
+                        showNotification(`${finalNewClients.length} client entries with ${newClients.length} contacts imported successfully!`, 'Success', 'success');
+
+                    } catch (error) {
+                        showNotification('Error reading or parsing CSV file.');
+                        console.error("CSV Import Error: ", error);
+                    }
+                };
+                reader.readAsText(file);
+                event.target.value = '';
+            }
+            
+            function exportToCsv() {
+                const headers = ["ID", "Company Name", "Contact Name", "Contact Title", "Contact Department", "Contact Phone", "Contact Mobile", "Contact Fax", "Contact Email", "Country", "Type", "Stage", "Next Task", "Task Date"];
+                const csvRows = [headers.join(',')];
+                
+                const escapeCsv = (val) => `"${(val || '').replace(/"/g, '""')}"`;
+
+                clients.forEach(c => {
+                    if (c.contacts && c.contacts.length > 0) {
+                        c.contacts.forEach(contact => {
+                            const values = [
+                                c.id,
+                                escapeCsv(c.companyName),
+                                escapeCsv(contact.name),
+                                escapeCsv(contact.title),
+                                escapeCsv(contact.department),
+                                escapeCsv(contact.phone),
+                                escapeCsv(contact.mobile),
+                                escapeCsv(contact.fax),
+                                escapeCsv(contact.email),
+                                escapeCsv(c.country),
+                                escapeCsv(c.type),
+                                escapeCsv(c.stage),
+                                escapeCsv(c.nextAction),
+                                escapeCsv(c.followUpDate)
+                            ];
+                            csvRows.push(values.join(','));
+                        });
+                    } else {
+                        // Add company even if it has no contacts
+                        const values = [
+                            c.id, escapeCsv(c.companyName), '', '', '', '', '', '', '',
+                            escapeCsv(c.country), escapeCsv(c.type), escapeCsv(c.stage),
+                            escapeCsv(c.nextAction), escapeCsv(c.followUpDate)
+                        ];
+                        csvRows.push(values.join(','));
+                    }
+                });
+
+                const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.setAttribute('href', URL.createObjectURL(blob));
+                link.setAttribute('download', 'clients_export.csv');
+                document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            }
+
+            // --- Initial Load ---
+            setupEventListeners();
+            loadClientsFromLocalStorage(); 
+        });
+    </script>
+</body>
+</html>
+

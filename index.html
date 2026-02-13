@@ -1,0 +1,347 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mr. Olive | Corporate Presentation 2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;600;700;800&family=Fraunces:opsz,ital,wght@9..144,300;9..144,700;9..144,900&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --olive: #283618;
+            --gold: #dda15e;
+        }
+        
+        /* Slide Deck Transitions */
+        html {
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Manrope', sans-serif;
+            background-color: var(--olive);
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .slide {
+            height: 100vh;
+            width: 100vw;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            padding: 2rem 4rem;
+        }
+
+        h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; }
+        .serif-font { font-family: 'Fraunces', serif; }
+        
+        .bg-olive { background-color: var(--olive); }
+        .text-olive { color: var(--olive); }
+        .bg-gold { background-color: var(--gold); }
+        .text-gold { color: var(--gold); }
+
+        /* Slide Footer */
+        .slide-footer {
+            position: absolute;
+            bottom: 2rem;
+            left: 4rem;
+            right: 4rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 1rem;
+            z-index: 30;
+        }
+
+        /* Slide Header */
+        .slide-header {
+            position: absolute;
+            top: 2rem;
+            left: 4rem;
+            right: 4rem;
+            z-index: 30;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .partner-logo {
+            filter: grayscale(100%);
+            opacity: 0.7;
+            transition: all 0.3s ease;
+        }
+        .partner-logo:hover {
+            filter: grayscale(0%);
+            opacity: 1;
+        }
+
+        @media print {
+            .slide {
+                height: 297mm;
+                page-break-after: always;
+                scroll-snap-align: none;
+            }
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.4",
+    "lucide-react": "https://esm.sh/lucide-react@^0.564.0",
+    "react/": "https://esm.sh/react@^19.2.4/"
+  }
+}
+</script>
+</head>
+<body>
+
+    <!-- SLIDE 1: COVER -->
+    <section class="slide bg-olive">
+        <div class="absolute inset-0 opacity-40">
+            <img src="https://images.unsplash.com/photo-1464334468623-64ce63d0459a?auto=format&fit=crop&q=80&w=2000" alt="" class="w-full h-full object-cover grayscale">
+        </div>
+        <div class="relative z-20 text-center max-w-6xl">
+            <img src="https://www.mr-olive.com/static/media/LogoOlive.6d69feead7265a8bcfec.png" alt="Mr. Olive" class="h-32 md:h-40 mx-auto brightness-0 invert mb-12">
+            <h1 class="text-7xl md:text-[10rem] font-black text-white uppercase tracking-tighter leading-[0.8] mb-8">
+                AGRICULTURE<br /><span class="text-gold italic serif-font lowercase font-light">redefined.</span>
+            </h1>
+            <p class="text-white/60 serif-font italic text-3xl font-light tracking-wide max-w-3xl mx-auto">
+                Vertical integration, industrial scale, and global reach since 1986.
+            </p>
+        </div>
+        <div class="slide-footer">
+            <span class="text-white/30 text-[10px] font-black uppercase tracking-[0.4em]">Corporate Profile 2026</span>
+            <span class="text-gold/50 text-[10px] font-black uppercase tracking-[0.4em]">Slide 01</span>
+        </div>
+    </section>
+
+    <!-- SLIDE 2: THE GENESIS -->
+    <section class="slide bg-white">
+        <div class="slide-header">
+            <span class="text-gold text-[10px] font-black uppercase tracking-[0.5em]">Section 01 / Origin</span>
+            <img src="https://www.mr-olive.com/static/media/LogoOlive.6d69feead7265a8bcfec.png" alt="" class="h-8">
+        </div>
+        <div class="grid md:grid-cols-2 gap-24 items-center max-w-7xl w-full">
+            <div>
+                <h2 class="text-8xl font-black text-olive mb-12 leading-none serif-font italic">1986 <br>Genesis.</h2>
+                <div class="w-24 h-2 bg-gold mb-12"></div>
+                <p class="text-slate-700 text-3xl serif-font italic leading-relaxed mb-10">
+                    Transforming <strong>1,000 hectares</strong> of Egyptian desert into the region's most productive olive groves.
+                </p>
+                <div class="bg-olive p-10 rounded-[2.5rem] text-white flex items-center gap-8 shadow-2xl">
+                    <div class="text-gold">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
+                    </div>
+                    <div>
+                        <h4 class="font-black uppercase text-xs tracking-widest text-gold mb-1">Agricultural Mastery</h4>
+                        <p class="text-white/50 text-xs">Pesticide-Free | GlobalGAP Certified</p>
+                    </div>
+                </div>
+            </div>
+            <div class="relative">
+                <img src="https://raw.githubusercontent.com/mrolive-ai/CRM/refs/heads/main/1755340963153.jfif" alt="" class="rounded-[4rem] shadow-2xl aspect-[3/4] object-cover">
+                <div class="absolute -bottom-10 -left-10 bg-gold p-12 rounded-3xl text-white shadow-2xl">
+                    <div class="text-7xl font-black">100%</div>
+                    <div class="text-xs font-black uppercase tracking-widest opacity-80">Private Ownership</div>
+                </div>
+            </div>
+        </div>
+        <div class="slide-footer">
+            <span class="text-slate-300 text-[10px] font-black uppercase tracking-[0.4em]">Integrated Supply Chain</span>
+            <span class="text-gold/50 text-[10px] font-black uppercase tracking-[0.4em]">Slide 02</span>
+        </div>
+    </section>
+
+    <!-- SLIDE 3: INDUSTRIAL CAPACITY & PARTNERS -->
+    <section class="slide bg-slate-50">
+        <div class="slide-header">
+            <span class="text-gold text-[10px] font-black uppercase tracking-[0.5em]">Section 02 / Capacity</span>
+            <img src="https://www.mr-olive.com/static/media/LogoOlive.6d69feead7265a8bcfec.png" alt="" class="h-8">
+        </div>
+        <div class="max-w-7xl w-full">
+            <div class="text-center mb-8">
+                <h2 class="text-7xl md:text-8xl font-black text-olive mb-2">10,000 <span class="text-gold italic serif-font">Tons.</span></h2>
+                <p class="text-slate-400 text-[10px] font-black uppercase tracking-[0.5em]">Annual baseline industrial output</p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-12 items-center mb-12">
+                <div class="bg-white p-4 rounded-[3rem] shadow-xl border border-slate-200">
+                    <img src="https://www.mr-olive.com/static/media/8.f0721ff346677e213b29.jpg" alt="" class="rounded-[2.5rem] w-full shadow-inner">
+                </div>
+                <div class="space-y-6">
+                    <div class="flex gap-6 items-start">
+                        <div class="bg-olive p-4 rounded-2xl text-gold shadow-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14H4Z"/></svg>
+                        </div>
+                        <div>
+                            <h4 class="text-2xl font-black text-olive uppercase tracking-tight mb-1">High-Speed Automation</h4>
+                            <p class="text-slate-500 serif-font italic text-sm leading-relaxed">Fully automated packaging lines calibrated for zero-defect output.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-6 items-start">
+                        <div class="bg-olive p-4 rounded-2xl text-gold shadow-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.72v.18a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </div>
+                        <div>
+                            <h4 class="text-2xl font-black text-olive uppercase tracking-tight mb-1">Multi-Format Efficiency</h4>
+                            <p class="text-slate-500 serif-font italic text-sm leading-relaxed">Transition between bulk, HoReCa, and premium retail streaming.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TRUSTED PARTNERS SUBSECTION -->
+            <div class="pt-8 border-t border-slate-200">
+                <div class="text-center mb-6">
+                    <span class="text-[10px] font-black uppercase text-gold tracking-[0.4em]">Trusted by Global Leaders</span>
+                </div>
+                <div class="grid grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-2xl flex items-center justify-center border border-slate-100 shadow-sm transition-all hover:shadow-md">
+                        <img src="https://www.bellacontadina.com/wp-content/uploads/2018/09/LOGO.png" alt="Bella Contadina" class="h-12 w-auto object-contain partner-logo">
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl flex items-center justify-center border border-slate-100 shadow-sm transition-all hover:shadow-md">
+                        <img src="https://mariocamachofoods.com/wp-content/uploads/2021/09/MCF-Logo-1-2.png" alt="Mario Camacho Foods" class="h-12 w-auto object-contain partner-logo">
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl flex items-center justify-center border border-slate-100 shadow-sm transition-all hover:shadow-md">
+                        <img src="https://www.granataolive.com/wp-content/uploads/2022/01/granata-olive-logo.svg" alt="Granata Olive" class="h-12 w-auto object-contain partner-logo">
+                    </div>
+                </div>
+                <div class="text-center mt-6">
+                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.3em] italic">And a long list of other premier partners worldwide</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-footer">
+            <span class="text-slate-400 text-[10px] font-black uppercase tracking-[0.4em]">Sadat City Industrial Hub</span>
+            <span class="text-gold/50 text-[10px] font-black uppercase tracking-[0.4em]">Slide 03</span>
+        </div>
+    </section>
+
+    <!-- SLIDE 4: LOGISTICS -->
+    <section class="slide bg-white">
+        <div class="slide-header">
+            <span class="text-gold text-[10px] font-black uppercase tracking-[0.5em]">Section 03 / Logistics</span>
+            <img src="https://www.mr-olive.com/static/media/LogoOlive.6d69feead7265a8bcfec.png" alt="" class="h-8">
+        </div>
+        <div class="max-w-7xl w-full">
+            <div class="grid md:grid-cols-2 gap-24 items-center">
+                <div class="order-2 md:order-1">
+                    <div class="bg-olive rounded-[4rem] p-10 shadow-2xl">
+                        <img src="https://raw.githubusercontent.com/mrolive-ai/CRM/refs/heads/main/Gemini_Generated_Image_egviiwegviiwegvi.png" alt="" class="rounded-[3rem] w-full">
+                    </div>
+                </div>
+                <div class="order-1 md:order-2">
+                    <h2 class="text-7xl font-black text-olive mb-10 leading-none">Global <br /><span class="text-gold italic serif-font">Intelligence.</span></h2>
+                    <p class="text-slate-700 text-3xl serif-font italic leading-relaxed mb-12">
+                        Exporting <strong>74 million kilograms</strong> to the world's most demanding multinational markets.
+                    </p>
+                    <div class="grid grid-cols-2 gap-8">
+                        <div class="p-8 bg-slate-50 rounded-3xl border-l-4 border-gold">
+                            <div class="text-4xl font-black text-olive mb-1">34+</div>
+                            <div class="text-[10px] font-black uppercase tracking-widest text-slate-400">Countries</div>
+                        </div>
+                        <div class="p-8 bg-slate-50 rounded-3xl border-l-4 border-gold">
+                            <div class="text-4xl font-black text-olive mb-1">5</div>
+                            <div class="text-[10px] font-black uppercase tracking-widest text-slate-400">Continents</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="slide-footer">
+            <span class="text-slate-400 text-[10px] font-black uppercase tracking-[0.4em]">Supply Chain Absolute</span>
+            <span class="text-gold/50 text-[10px] font-black uppercase tracking-[0.4em]">Slide 04</span>
+        </div>
+    </section>
+
+    <!-- SLIDE 5: PORTFOLIO -->
+    <section class="slide bg-slate-50">
+        <div class="slide-header">
+            <span class="text-gold text-[10px] font-black uppercase tracking-[0.5em]">Section 04 / Portfolio</span>
+            <img src="https://www.mr-olive.com/static/media/LogoOlive.6d69feead7265a8bcfec.png" alt="" class="h-8">
+        </div>
+        <div class="max-w-7xl w-full">
+            <div class="grid md:grid-cols-2 gap-12">
+                <div class="bg-white rounded-[4rem] overflow-hidden shadow-2xl border border-slate-100 flex flex-col">
+                    <img src="https://images.unsplash.com/photo-1541533260371-b8f67467151a?auto=format&fit=crop&q=80&w=800" class="h-80 w-full object-cover" alt="">
+                    <div class="p-16 flex-1">
+                        <h3 class="text-5xl font-black text-olive mb-6 tracking-tighter uppercase">Table Olives</h3>
+                        <p class="text-slate-500 serif-font italic text-xl leading-relaxed">Vertically integrated Manzanilla, Picual, and Azizi varieties.</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-[4rem] overflow-hidden shadow-2xl border border-slate-100 flex flex-col">
+                    <img src="https://images.unsplash.com/photo-1590004845575-cc18b13d1d0a?auto=format&fit=crop&q=80&w=800" class="h-80 w-full object-cover" alt="">
+                    <div class="p-16 flex-1">
+                        <h3 class="text-5xl font-black text-olive mb-6 tracking-tighter uppercase">Specialty Veg</h3>
+                        <p class="text-slate-500 serif-font italic text-xl leading-relaxed">Gourmet Artichokes, Peppers, and Mixed Mediterranean Pickles.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="slide-footer">
+            <span class="text-slate-400 text-[10px] font-black uppercase tracking-[0.4em]">Technical Selection</span>
+            <span class="text-gold/50 text-[10px] font-black uppercase tracking-[0.4em]">Slide 05</span>
+        </div>
+    </section>
+
+    <!-- SLIDE 6: QUALITY & CONTACT -->
+    <section class="slide bg-olive text-white">
+        <div class="slide-header">
+            <span class="text-gold text-[10px] font-black uppercase tracking-[0.5em]">Section 05 / Contact</span>
+            <img src="https://www.mr-olive.com/static/media/LogoOlive.6d69feead7265a8bcfec.png" alt="" class="h-8 brightness-0 invert">
+        </div>
+        <div class="max-w-7xl w-full grid md:grid-cols-2 gap-24 items-center">
+            <div>
+                <h2 class="text-7xl font-black leading-tight mb-12 italic serif-font">Quality Without <br /><span class="text-gold">Borders.</span></h2>
+                <div class="flex flex-wrap gap-12 mb-16">
+                    <div class="flex flex-col items-center">
+                        <div class="w-20 h-20 bg-white/10 rounded-2xl flex items-center justify-center p-4 mb-4 border border-white/20">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gold"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                        </div>
+                        <span class="text-[9px] font-black uppercase tracking-widest opacity-60">GlobalGAP</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div class="w-20 h-20 bg-white/10 rounded-2xl flex items-center justify-center p-4 mb-4 border border-white/20">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gold"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                        </div>
+                        <span class="text-[9px] font-black uppercase tracking-widest opacity-60">FDA / ISO</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div class="w-20 h-20 bg-white/10 rounded-2xl flex items-center justify-center p-4 mb-4 border border-white/20">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gold"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                        </div>
+                        <span class="text-[9px] font-black uppercase tracking-widest opacity-60">Sedex</span>
+                    </div>
+                </div>
+                <div class="h-px w-24 bg-gold opacity-50"></div>
+            </div>
+            <div class="bg-white p-20 rounded-[5rem] text-olive space-y-12 shadow-2xl">
+                <div>
+                    <h4 class="font-black uppercase text-[10px] tracking-widest text-gold mb-4">Trade Department</h4>
+                    <p class="text-3xl font-bold tracking-tight">sales@mr-olive.com</p>
+                    <p class="text-3xl font-bold tracking-tight">www.mr-olive.com</p>
+                </div>
+                <div>
+                    <h4 class="font-black uppercase text-[10px] tracking-widest text-gold mb-4">Headquarters</h4>
+                    <p class="text-xl serif-font italic text-slate-500">Industrial Zone, Sadat City,<br />Egypt 32837</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-footer">
+            <span class="text-white/20 text-[9px] font-black uppercase tracking-[0.5em]">© 2026 MR. OLIVE FOR FOOD INDUSTRIES</span>
+            <span class="text-gold/50 text-[10px] font-black uppercase tracking-[0.4em]">Slide 06</span>
+        </div>
+    </section>
+
+</body>
+</html>
